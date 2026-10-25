@@ -36,7 +36,7 @@ Forbidden:
 - **Gradients anywhere**, CTAs included. Every fill is a flat role.
 - **`border-strong` (cream-300) or darker creams on large fills**: they read as aged paper / dingy. Reserved for dividers.
 - **Navy or gold scrollbars.** Scrollbars are overlay-style: invisible at rest, soft white when revealed (`globals.css`). Scrollable dark panels take `.scrollbar-on-dark`.
-- **`border-border-strong` and darker** on new borders. Borders use `border-border`.
+- **`border-border-strong` and darker** on new borders. Borders use `border-border`. The one exception: the marketing footer's top edge is a flat 1px gold hairline (`border-t border-accent/40`).
 
 ### Typography
 
@@ -61,6 +61,8 @@ Forbidden:
 |---|---|---|
 | Primary (Gold) | `bg-accent hover:bg-accent-strong text-accent-ink` | Main action per surface |
 | Primary (Navy) | `bg-brand hover:bg-brand-strong text-brand-ink` | Secondary primary, sign-up, save |
+
+CTAs on navy bands (inverse surfaces) carry no shadow and no `.cta-gold` lift: they change color on hover only.
 
 Labels on both fills are white (`accent-ink`, `brand-ink`). The light gold tints (`bg-accent-soft`, `bg-accent-soft-strong`) are badges and tiles, not CTAs, and keep dark text (`text-accent-soft-ink`).
 

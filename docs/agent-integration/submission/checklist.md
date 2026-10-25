@@ -20,8 +20,8 @@ Status as of 2026-10-25, checked against production (Worker version `7121506b`, 
 | Tested in ChatGPT developer mode | desktop done on 2026-10-21. Mobile open | Wasim |
 | MCP Inspector run | done on 2026-10-21 (43 tools, schema 0 errors). On 2026-10-25 the CLI reached production and stopped at OAuth, which needs a person at the keyboard (`MCP_AUTO_OPEN_ENABLED=true`); the authenticated list came from the live plugin connection instead | done |
 | MCP E2E (`--project=mcp`) green on main after #194 | done on 2026-10-25: 125 passed (`../STATUS.md`, session 5) | done |
-| Privacy policy names every field the tools collect | **open:** `update_profile` saves date of birth and nationality, which the policy doesn't name. OpenAI compares tools to the policy | Wasim decides the wording |
-| Privacy policy retention for PostHog product analytics | **open:** MCP analytics say 12 months, PostHog product analytics and session replay have no period | Wasim |
+| Privacy policy names every field the tools collect | done on 2026-10-25: date of birth and nationality (`update_profile`, web profile) named in section 1, the US data table and section 15 | done |
+| Privacy policy retention for PostHog product analytics | done on 2026-10-25: usage events 12 months, session recordings 30 days (section 5, Wasim's call). PostHog's project retention must match | done |
 
 ## Reviewer account
 
@@ -29,13 +29,13 @@ Status as of 2026-10-25, checked against production (Worker version `7121506b`, 
 |---|---|---|
 | Seed script written, idempotent, no MFA, verified email | done, `scripts/seed-reviewer-account.ts`. Re-run on a fresh local D1 after migration 0015 on 2026-10-25: two runs, both exit 0 (see `../STATUS.md`) | done |
 | Reviewer is on Max with no Stripe ids, so screening and the job feed work | done in the seed. The monthly sweep never selects it (see Reset and plan survival below) | done |
-| One reviewer account per portal: `reviewer+anthropic@usefulapply.com` for Anthropic and `reviewer+openai@usefulapply.com` for OpenAI, each seeded with `--email` and its own credentials file | open | Wasim |
-| Seeded on production | open. **Needs Wasim's yes in session first.** Commands below | Wasim |
+| One reviewer account per portal: `reviewer+anthropic@usefulapply.com` for Anthropic and `reviewer+openai@usefulapply.com` for OpenAI, each seeded with `--email` and its own credentials file | done on 2026-10-25. Credentials in `~/Documents/usefulapply-reviewers/{anthropic,openai}.json` (mode 0600, outside the repo) | done |
+| Seeded on production | done on 2026-10-25 around 00:45 CEST, with Wasim's yes, from main at `ec8c6020`. Both runs exit 0. Read-only D1 check per account: email verified, Max, 200 credits, `subscription_status` NULL, no Stripe id, 1 subscription row, Halcyon (applied) and Fjordwerk (interview) kits succeeded, 1 CV, 8 chat messages, 5 ranked feed items | done |
 | Re-run the seed right before each review window opens, and again if the review is delayed. The briefing counts feed matches from the last 24 hours and interviews in the next 7 days, and the seed puts the interview 5 days out, so the dates go stale fast | open | Wasim |
 | Credentials entered in the matching portal only, files kept outside git | open | Wasim |
 | Accounts and data kept available for later reviews | ongoing | Wasim |
 
-### Production seed (run only after Wasim says yes)
+### Production seed (done 2026-10-25; re-run only after Wasim says yes)
 
 From the main checkout on an up-to-date `main`, with a Cloudflare login that can write to the production database. One run per portal:
 
@@ -56,7 +56,7 @@ Create `~/Documents/usefulapply-reviewers/` first. It's outside every repo, and 
 | Name, one-liner, short and long description | done, `listing.md` | done |
 | 3+ example prompts that exercise different tools | 5 drafted, each checked against the seeded reviewer account | done |
 | Documentation URL | `https://usefulapply.com/integrations`, live | done |
-| Privacy policy URL, with retention | live. See the two privacy rows above | Wasim |
+| Privacy policy URL, with retention | live. See the two privacy rows above | done |
 | Terms URL | `https://usefulapply.com/terms`, live | done |
 | Support contact | support@usefulapply.com. Confirm the mailbox exists and is read | Wasim |
 | Icon / logo, square, 48 px or larger | `public/useful-apply-logo.png` (512 x 512 PNG, the mark on cream), also in the OpenAI package as `assets/logo.png` | done |
@@ -102,7 +102,7 @@ After submitting, Anthropic scans it and by default lists it as a Community conn
 | Domain challenge route and `OPENAI_APPS_CHALLENGE` secret | route live (404 until the secret is set). Secret needs the portal token | Wasim |
 | Registration method `dcr`, scopes, redirect URIs | in `package/mcp.json` and the sheet. Compare with the dashboard's callback | Wasim |
 | 5 positive and 3 negative test cases, all positive ones run | drafted in the sheet | Wasim runs |
-| Test account with no MFA, no sign-up needed | seed script supports it | Wasim |
+| Test account with no MFA, no sign-up needed | seeded on production 2026-10-25 (`reviewer+openai@usefulapply.com`) | done |
 | No digital goods, credits or upgrade promotion in the app | done (see Product readiness) | done |
 | No pricing, trial or promotion wording in descriptions | listing text complies | done |
 | Policy attestations in the Submit dialog | open | Wasim |
@@ -113,9 +113,8 @@ After submitting, Anthropic scans it and by default lists it as a Community conn
 
 - OpenAI identity verification and a Claude paid plan for submitting.
 - The OpenAI domain challenge token, set as `OPENAI_APPS_CHALLENGE`.
-- Privacy policy wording for date of birth and nationality, and the PostHog analytics retention period.
 - Company details, review contact and categories.
-- A yes to run the seed on production, then entering the credentials in the portals.
+- Entering the reviewer credentials in the portals, and a seed re-run right before each review window.
 - The demo recording and the screenshots.
 - A decision on the commerce risk: ship `spend` to ChatGPT, or drop it if OpenAI rejects credits.
 

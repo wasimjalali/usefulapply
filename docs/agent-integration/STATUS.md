@@ -6,8 +6,8 @@ Last updated 2026-10-25, session 5. The plan is `PLAN.md` (v3) in this folder; t
 
 1. **Live since 2026-10-21:** 43 tools at https://usefulapply.com/mcp, the Claude Code plugin ([wasimjalali/usefulapply-plugin](https://github.com/wasimjalali/usefulapply-plugin)) and /integrations. Production on 2026-10-25: Worker version `7121506b`, migrations through 0015 applied.
 2. **Submission pack is current** (session 5): `submission/` and `openai/` match the live catalog, the submission docs as read on 2026-10-25, and OpenAI's new ZIP flow (`openai/package/`).
-3. **Wasim, to submit:** say yes in a session to the production reviewer seed (commands in `submission/checklist.md`, "Production seed"), then the connector and plugin at claude.ai/directory/manage, then the OpenAI app at platform.openai.com/plugins (identity verification and `OPENAI_APPS_CHALLENGE` first).
-4. **Before the OpenAI submission:** the privacy policy doesn't name date of birth or nationality (`update_profile` saves both) and gives no PostHog analytics retention period.
+3. **Wasim, to submit:** the production reviewer seed is done (2026-10-25, `reviewer+anthropic@` and `reviewer+openai@`, see `submission/checklist.md`). The interview date (5 days out) and the feed matches (24 hours) go stale, so re-run the seed right before each review window. Then the connector and plugin at claude.ai/directory/manage, then the OpenAI app at platform.openai.com/plugins (identity verification and `OPENAI_APPS_CHALLENGE` first).
+4. **Done 2026-10-25:** the privacy policy names date of birth and nationality and states PostHog retention (usage events 12 months, session recordings 30 days).
 5. **Follow-ups** as in "Follow-ups", plus: `rewrite_cv_section` returns its before/after text unwrapped while the other CV edit tools wrap it; no spec asserts the top-level `language` code in `get_cv` stays unwrapped.
 
 **Kill switch:** set `MCP_ENABLED` to `"false"` in `wrangler.jsonc` and deploy. /mcp, the OAuth server and /integrations return 404. The footer "AI integrations" link stays (it can't read the var), so it would 404 too: drop it from `Footer.tsx` in the same change.
@@ -18,7 +18,8 @@ Last updated 2026-10-25, session 5. The plan is `PLAN.md` (v3) in this folder; t
 - **Drift fixed in the pack:** the authorization server metadata URL (`/.well-known/oauth-authorization-server/api/auth`; the bare path is 404, correct for an issuer with a path), the OpenAI flow (now a ZIP upload, package in `openai/package/`), the Anthropic plugin flow (portal "Plugin bundle", GitHub connection, data handling, four acknowledgements), the icon (`public/useful-apply-logo.png`), and every "open until launch" status.
 - **Plugin repo:** matches the live catalog, `claude plugin validate` passes. No PR needed.
 - **Production, read-only:** `/mcp` 401 with `WWW-Authenticate` (resource metadata and scopes), protected resource and authorization server metadata 200, `/integrations`, `/privacy`, `/terms`, `/auth/login` 200, `/.well-known/openai-apps-challenge` 404 (secret not set yet). MCP Inspector CLI reached production and stopped at OAuth, which needs a person at the keyboard; the authenticated list came from the plugin connection.
-- **Reviewer seed after 0015:** fresh local D1 (all 15 migrations), preview on 8797, two runs as `reviewer+local@usefulapply.com`, both exit 0 (the second reused the account). Rows: verified email, Max, 200 credits, `subscription_status` NULL, 1 subscription, Halcyon applied and Fjordwerk interview (both kits succeeded), 1 CV, 8 chat messages, 5 ranked feed items, a career profile. Not run on production.
+- **Reviewer seed after 0015:** fresh local D1 (all 15 migrations), preview on 8797, two runs as `reviewer+local@usefulapply.com`, both exit 0 (the second reused the account). Rows: verified email, Max, 200 credits, `subscription_status` NULL, 1 subscription, Halcyon applied and Fjordwerk interview (both kits succeeded), 1 CV, 8 chat messages, 5 ranked feed items, a career profile. The production run is the next bullet.
+- **Production reviewer seed:** on 2026-10-25 around 00:45 CEST, with Wasim's yes, from main at `ec8c6020`: `reviewer+anthropic@usefulapply.com` and `reviewer+openai@usefulapply.com`, both exit 0. A read-only D1 check showed the same rows as the local run for each, plus no Stripe id. Credentials in `~/Documents/usefulapply-reviewers/` (mode 0600, outside the repo).
 - **MCP E2E:** `E2E_MCP=1 npx playwright test --project=mcp` on main at `a757d2c1` (after #194), through the heavy lock: 125 passed in 10.8 minutes, including `01-catalog` (tools/list equals `TOOL_SCOPES`) and `98-every-tool-is-called`. Report: `verify/fix-mcp-submission-pack/playwright-report/` in the main checkout. A first attempt was stopped by the lock at 18% free memory while another session's suite ran; the rerun waited for it.
 - **Privacy gaps found:** see Resume here, item 4.
 
@@ -101,9 +102,8 @@ Last updated 2026-10-25, session 5. The plan is `PLAN.md` (v3) in this folder; t
 
 Everything from the old "In flight" and "Left to do" lists (the Discard and short-ad fixes, PR 5, PR 6a and 6b, the launch) has shipped; git history has the old text.
 
-1. **Wasim says yes** to the production reviewer seed, one run per portal (`submission/checklist.md`, "Production seed").
-2. **Privacy policy:** name date of birth and nationality, and state the PostHog analytics retention period.
-3. **Wasim submits** at claude.ai/directory/manage (connector, then plugin) and at platform.openai.com/plugins (identity verification and `OPENAI_APPS_CHALLENGE` first).
+1. **Production reviewer seed:** done on 2026-10-25, one account per portal. Re-run it right before each review window: the interview date (5 days out) and the feed matches (24 hours) go stale.
+2. **Wasim submits** at claude.ai/directory/manage (connector, then plugin) and at platform.openai.com/plugins (identity verification and `OPENAI_APPS_CHALLENGE` first).
 
 ## Follow-ups (smaller, any time)
 
@@ -124,9 +124,7 @@ Everything from the old "In flight" and "Left to do" lists (the Discard and shor
 
 ## Needs Wasim (ask once, at the end)
 
-- **PostHog analytics retention period:** the privacy policy and OpenAI's review need a number (MCP analytics already say 12 months).
-- **Privacy wording** for date of birth and nationality.
-- **Production reviewer seed:** a yes in session before anyone runs it.
+- **Reviewer seed re-run:** a yes in session right before each review window.
 - **Marketplace submissions:** Anthropic and OpenAI accounts, OpenAI identity verification, a GitHub connection on claude.ai for the plugin.
 - **Uninstall CodeRabbit:** github.com/settings/installations, then CodeRabbit, Configure, Uninstall.
 - **Optional:** add `MCP_ENABLED=true` and `EXPORT_SIGNING_SECRET=` to `.dev.vars.example` (hooks block agents from that file).
