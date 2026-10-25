@@ -32,6 +32,10 @@ const MAX_HEIGHT = 192;
  * button (8), the button (36) and the right padding (8). Kept in step with the classes below.
  */
 const PILL_CHROME = 72;
+/** What the box takes from the form's inner width beside the field: its left (16) and right (8) padding. */
+const BOX_CHROME = 24;
+/** The form's 1px border on each side, which its rendered width includes. */
+const FORM_BORDERS = 2;
 
 /**
  * The composer: a pill one line high that grows into a box once the text wraps, with the send button a
@@ -56,7 +60,6 @@ export function ChatInput({
   const formRef = useRef<HTMLFormElement>(null);
   const [height, setHeight] = useState(LINE_HEIGHT);
   const [expanded, setExpanded] = useState(false);
-  const expandedRef = useRef(false);
   const hasText = value.trim().length > 0;
   const canSend = hasText && !disabled && !isWorking;
   const stopMode = isWorking && Boolean(onStop);
@@ -74,28 +77,44 @@ export function ChatInput({
   /**
    * The field takes its content's height, one line at least and MAX_HEIGHT at most, and the composer is a
    * pill while the text fits one line and a box once it wraps. The box gives the field more width than the
-   * pill, so a text can wrap in the pill and fit in the box: the box goes back to a pill only when the text
-   * fits one line at the pill's own width, or the two layouts would flip each other forever.
+   * pill, so a text can wrap in the pill and fit in the box: whether it wraps is always judged at the pill's
+   * width, or the two layouts would flip each other forever, and the box's height is measured at the box's
+   * width, so the first frame of the box already has its final height. Widths come unrounded from
+   * getBoundingClientRect: a rounded-up clientWidth could judge a text that wraps by half a pixel as fitting.
    */
   const fit = useCallback(() => {
     const field = textareaRef.current;
     const form = formRef.current;
     if (!field || !form) return;
+    const inner = form.getBoundingClientRect().width - FORM_BORDERS;
+    const ownWidth = field.style.width;
+    const measure = (width: number) => {
+      field.style.width = `${width}px`;
+      return field.scrollHeight;
+    };
     field.style.height = '0px';
-    const natural = field.scrollHeight;
-    let wraps = natural > LINE_HEIGHT + 4;
-    if (expandedRef.current) {
-      const boxWidth = field.style.width;
-      field.style.width = `${form.clientWidth - PILL_CHROME}px`;
-      wraps = field.scrollHeight > LINE_HEIGHT + 4;
-      field.style.width = boxWidth;
-    }
+    const pillHeight = measure(inner - PILL_CHROME);
+    const wraps = pillHeight > LINE_HEIGHT + 4;
+    const natural = wraps ? measure(inner - BOX_CHROME) : pillHeight;
+    field.style.width = ownWidth;
     const next = Math.min(Math.max(natural, LINE_HEIGHT), MAX_HEIGHT);
     field.style.height = `${next}px`;
     setHeight(next);
-    expandedRef.current = wraps;
     setExpanded(wraps);
   }, []);
+
+  // A field disabled while the agent replies loses focus; hand it back when the reply is done, if it had it.
+  const focusedWhenDisabledRef = useRef(false);
+  useLayoutEffect(() => {
+    const field = textareaRef.current;
+    if (!field) return;
+    if (disabled) {
+      if (document.activeElement === field) focusedWhenDisabledRef.current = true;
+    } else if (focusedWhenDisabledRef.current) {
+      focusedWhenDisabledRef.current = false;
+      field.focus({ preventScroll: true });
+    }
+  }, [disabled]);
 
   // Before paint on every change of the text.
   useLayoutEffect(() => {
@@ -154,7 +173,8 @@ export function ChatInput({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+            // keyCode 229 is the Enter some browsers (Safari) send to confirm an IME composition after it ends.
+            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
               event.preventDefault();
               send();
             }

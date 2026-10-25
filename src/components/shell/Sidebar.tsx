@@ -267,7 +267,8 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
             <ul className="flex flex-col gap-px">
               {group.items.map((session) => {
                 const isCurrent = currentSession?.id === session.id && activeTab !== 'jobs' && activeTab !== 'tracker';
-                const working = isCurrent && isWorking;
+                // Still working while another workspace (the Job Board) is open.
+                const working = currentSession?.id === session.id && isWorking;
                 // A draft is an application without a kit, whichever workspace is open.
                 const draft = !sessionHasKit(session);
                 return (
@@ -310,7 +311,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
           ) : (
-            initials
+            <span aria-hidden="true">{initials}</span>
           )}
         </span>
         <div className="min-w-0 flex-1">
@@ -402,7 +403,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
             {filteredSessions.length === 0 && sessionsKnown && (
               <p className="px-2 py-8 text-center text-sm text-ink-muted">
                 {sessions.length === 0
-                  ? 'No applications yet.'
+                  ? 'Applications you start show up here.'
                   : `No applications match “${searchQuery.trim()}”.`}
               </p>
             )}

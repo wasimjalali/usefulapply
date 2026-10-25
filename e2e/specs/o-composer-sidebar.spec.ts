@@ -140,11 +140,21 @@ test('(o) the composer grows from a pill to a box and sends on Enter; the sideba
     await expect(jobBoard).toBeFocused();
     expect(await jobBoard.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe('none');
     await sidebar.screenshot({ path: testInfo.outputPath('7-sidebar-focus-visible.png') });
+    // On into the applications region: a row shows its focus too.
+    for (let presses = 0; presses < 8 && !(await row.evaluate((element) => element === document.activeElement)); presses += 1) {
+      await page.keyboard.press('Tab');
+    }
+    await expect(row).toBeFocused();
+    expect(await row.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe('none');
+    await sidebar.screenshot({ path: testInfo.outputPath('7b-sidebar-row-focus-visible.png') });
 
     // The Job Board open: its row is the raised one, the application's is not.
     await sidebar.getByRole('button', { name: /^Job Board/ }).click();
     await expect(sidebar.getByRole('button', { name: /^Job Board/ })).toHaveAttribute('aria-current', 'page');
     await expect(row).not.toHaveAttribute('aria-current', 'page');
+    // A kit is still a kit with another workspace open, and a draft still a draft.
+    await expect(row).not.toContainText('Draft');
+    await expect(sidebar.getByRole('button', { name: /Harbor Freight Lines/ })).toContainText('Draft');
     await row.hover();
     await sidebar.screenshot({ path: testInfo.outputPath('8-sidebar-job-board-open-row-hover.png') });
   } finally {
