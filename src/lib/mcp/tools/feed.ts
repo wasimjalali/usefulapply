@@ -4,7 +4,12 @@ import { getProfile } from '@/db/repos/profiles';
 import { profileGaps } from '@/lib/profile/logistics';
 import { START_DATE_NOTE, profileGapsSchema } from '@/lib/mcp/tools/spend';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
-import { JOB_FEED_COUNTRY_OPTIONS, JOB_FEED_EMPLOYMENT_TYPE_OPTIONS, JOB_FEED_REMOTE_PREFERENCE_OPTIONS } from '@/lib/job-feed/constants';
+import {
+  JOB_FEED_COUNTRY_OPTIONS,
+  JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
+  JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
+  JOB_FEED_SENIORITY_OPTIONS,
+} from '@/lib/job-feed/constants';
 import { toJobFeedInput } from '@/lib/job-feed/helpers';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { getJobFeedFeedbackAdmin } from '@/lib/job-feed/server';
@@ -282,6 +287,7 @@ const getFeedSettings = defineTool({
 const COUNTRY_CODES = JOB_FEED_COUNTRY_OPTIONS.map((option) => option.value) as [string, ...string[]];
 const WORK_MODES = JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => option.value) as [string, ...string[]];
 const EMPLOYMENT_TYPES = JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => option.value) as [string, ...string[]];
+const SENIORITY = JOB_FEED_SENIORITY_OPTIONS.map((option) => option.value) as [string, ...string[]];
 
 const updateFeedSettings = defineTool({
   name: 'update_feed_settings',
@@ -306,6 +312,8 @@ const updateFeedSettings = defineTool({
       .describe('Whether the feed is switched on. It never runs by itself: when on, the user in the web app or run_job_feed starts at most one completed run a day. Turning it on needs consent already on file.'),
     timezone: z.string().trim().min(1).max(80).optional()
       .describe('IANA timezone name, for example Europe/Berlin. The one run a day follows this timezone.'),
+    seniority: z.array(z.enum(SENIORITY)).max(SENIORITY.length).optional()
+      .describe(`Levels to keep: ${SENIORITY.join(', ')}. A job whose ad is only for other levels is left out of the feed; an ad that does not say is kept. An empty list keeps every level.`),
   }),
   output: z.object({
     changed: z.array(z.string()),
@@ -354,6 +362,7 @@ function toPatch(args: {
   salaryFloor?: number | null;
   automationEnabled?: boolean;
   timezone?: string;
+  seniority?: string[];
 }): FeedSettingsPatch {
   const patch: FeedSettingsPatch = {};
   if (args.roles !== undefined) patch.roles = args.roles;
@@ -363,6 +372,7 @@ function toPatch(args: {
   if (args.salaryFloor !== undefined) patch.salaryFloor = args.salaryFloor;
   if (args.automationEnabled !== undefined) patch.automationEnabled = args.automationEnabled;
   if (args.timezone !== undefined) patch.timezone = args.timezone;
+  if (args.seniority !== undefined) patch.seniority = [...new Set(args.seniority)];
   return patch;
 }
 

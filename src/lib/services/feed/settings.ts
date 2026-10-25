@@ -200,11 +200,22 @@ async function persistFeedSettings(params: {
   }
 
   const userSkills = profileMirror?.userSkills ?? existingSettings?.user_skills ?? [];
-  const languages = profileMirror?.languages ?? (existingSettings?.languages?.length ? existingSettings.languages : ['English']);
 
-  const seniorityTargets = profileMirror?.seniorityTargets
-    ?? (existingSettings?.seniority_targets?.length ? existingSettings.seniority_targets : normalized.data.seniority_targets);
-  const seniorityTarget = seniorityTargets[0] ?? normalized.data.seniority_target ?? existingSettings?.seniority_target ?? null;
+  // Seniority and languages are the user's to set (the editor, update_feed_settings). The career profile only
+  // fills them in on a first save that sends none. They used to be replaced by the profile's estimate on every
+  // save, which pinned a wrong "senior" with no way to change it.
+  const sent = body as Record<string, unknown>;
+  const languages = Array.isArray(sent.languages)
+    ? normalized.data.languages
+    : existingSettings?.languages?.length
+      ? existingSettings.languages
+      : profileMirror?.languages ?? ['English'];
+  const seniorityTargets: JobFeedSettingsInput['seniority_targets'] = Array.isArray(sent.seniority_targets)
+    ? normalized.data.seniority_targets
+    : existingSettings
+      ? (existingSettings.seniority_targets as JobFeedSettingsInput['seniority_targets'])
+      : profileMirror?.seniorityTargets ?? [];
+  const seniorityTarget = seniorityTargets[0] ?? null;
 
   // Employment types is a setting of its own in the editor and the MCP tool. A body that leaves the key out
   // gets ['full_time'] (the web app always sends a list, ['full_time'] from the first-run wizard); a body that
@@ -365,6 +376,8 @@ export interface FeedSettingsPatch {
   salaryFloor?: number | null;
   automationEnabled?: boolean;
   timezone?: string;
+  /** Levels the feed keeps; an empty list keeps every level. */
+  seniority?: string[];
 }
 
 function sameSet(left: readonly string[], right: readonly string[]): boolean {
@@ -402,6 +415,7 @@ export function changedFeedSettingFields(existing: JobFeedSettings | null, patch
   if (patch.salaryFloor !== undefined && patch.salaryFloor !== current.salary_floor) changed.push('salary floor');
   if (patch.automationEnabled !== undefined && patch.automationEnabled !== Boolean(existing?.enabled)) changed.push('daily feed on or off');
   if (patch.timezone !== undefined && patch.timezone !== (existing ? current.user_timezone : undefined)) changed.push('timezone');
+  if (patch.seniority && !sameSet(patch.seniority, current.seniority_targets)) changed.push('seniority');
   return changed;
 }
 
@@ -445,6 +459,10 @@ export async function updateFeedSettingsPartial(params: {
   if (patch.salaryFloor !== undefined) body.salary_floor = patch.salaryFloor;
   if (patch.automationEnabled !== undefined) body.enabled = patch.automationEnabled;
   if (patch.timezone !== undefined) body.user_timezone = patch.timezone;
+  if (patch.seniority) {
+    body.seniority_targets = patch.seniority;
+    body.seniority_target = patch.seniority[0] ?? null;
+  }
 
   const searchLimit = planCapForTier(profile.subscription_tier);
   let searches: ConfirmedSearchQuery[] | null = null;

@@ -9,6 +9,7 @@ import {
   JOB_FEED_COUNTRY_OPTIONS,
   JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
   JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
+  JOB_FEED_SENIORITY_OPTIONS,
   JOB_FEED_WORK_AUTH_OPTIONS,
   legacyMarketFromCountries,
 } from '@/lib/job-feed/constants';
@@ -51,6 +52,7 @@ interface PreferenceDraft {
   cities: string;
   workModes: JobFeedSettingsInput['remote_preferences'];
   employmentTypes: JobFeedSettingsInput['employment_types'];
+  seniority: JobFeedSettingsInput['seniority_targets'];
   salaryFloor: string;
   searchRows: ConfirmedSearchQuery[];
   workAuthorization: JobFeedSettingsInput['work_authorization_status'];
@@ -106,8 +108,12 @@ export function FeedEditView({
   /** Set by a stale save: take in the newer settings even over unsaved edits. */
   const [reloadDraft, setReloadDraft] = useState(false);
 
-  // Employment types are a set: the same types in another order are no change.
-  const sortedTypes = (value: PreferenceDraft) => ({ ...value, employmentTypes: [...value.employmentTypes].sort() });
+  // Employment types and levels are sets: the same values in another order are no change.
+  const sortedTypes = (value: PreferenceDraft) => ({
+    ...value,
+    employmentTypes: [...value.employmentTypes].sort(),
+    seniority: [...value.seniority].sort(),
+  });
   const dirty = draft !== null && savedDraft !== null
     && JSON.stringify(sortedTypes(draft)) !== JSON.stringify(sortedTypes(savedDraft));
 
@@ -369,6 +375,38 @@ export function FeedEditView({
                       )}
                     </fieldset>
 
+                    <fieldset className="xl:col-span-2">
+                      <legend className="text-sm font-medium text-ink-body">Seniority</legend>
+                      <div className="mt-1.5 flex flex-wrap gap-2">
+                        {JOB_FEED_SENIORITY_OPTIONS.map((option) => {
+                          const selected = draft.seniority.includes(option.value);
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              aria-pressed={selected}
+                              onClick={() => updateDraft({
+                                seniority: selected
+                                  ? draft.seniority.filter((item) => item !== option.value)
+                                  : [...draft.seniority, option.value],
+                              })}
+                              className={`inline-flex h-10 items-center gap-1.5 rounded-pill border px-3 text-sm transition-colors duration-(--duration-fast) ${
+                                selected
+                                  ? 'border-brand-strong bg-surface-raised font-semibold text-ink'
+                                  : 'border-border bg-surface-raised text-ink-body hover:border-border-brand-soft'
+                              }`}
+                            >
+                              {selected && <Check className="h-3.5 w-3.5" />}
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {draft.seniority.length === 0 && (
+                        <p className="mt-1 text-xs text-ink-muted">No level chosen: every level is shown.</p>
+                      )}
+                    </fieldset>
+
                     <div className="xl:col-span-2">
                       <p className="text-sm font-medium text-ink-body">Searches</p>
                       <div className="mt-2">
@@ -553,6 +591,7 @@ function toPreferenceDraft(
     cities: input.target_cities.join(', '),
     workModes: [...input.remote_preferences],
     employmentTypes: [...input.employment_types],
+    seniority: [...input.seniority_targets],
     salaryFloor: input.salary_floor === null ? '' : String(input.salary_floor),
     searchRows,
     workAuthorization: input.work_authorization_status,
@@ -572,6 +611,8 @@ function toSettingsInput(base: JobFeedSettingsInput, draft: PreferenceDraft): Jo
     remote_preference: remotePreference,
     remote_preferences: draft.workModes,
     employment_types: draft.employmentTypes,
+    seniority_targets: draft.seniority,
+    seniority_target: draft.seniority[0] ?? null,
     salary_floor: salary ? Number(salary) : null,
     work_authorization_status: draft.workAuthorization,
     excluded_terms: splitCommaList(draft.excludedTerms),

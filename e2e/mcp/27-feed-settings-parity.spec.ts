@@ -2,7 +2,7 @@ import type { BrowserContext, Page } from '@playwright/test';
 import { expect, test } from '../lib/worker-logs';
 import { McpSession, newAgent } from '../lib/mcp-client';
 import { setPlan } from '../lib/mcp-db';
-import { seedFeedInbox, seedFeedSettings } from '../lib/mcp-feed-seed';
+import { seedCareerProfile, seedFeedInbox, seedFeedSettings } from '../lib/mcp-feed-seed';
 import { PRIMARY_CV } from '../lib/model-script';
 import type { TestUser } from '../lib/user';
 
@@ -20,6 +20,12 @@ interface SettingsRead {
   settings: {
     salaryFloor: number | null;
     roles: string[];
+    seniority: string[];
+    excludedTerms: string[];
+    cities: string[];
+    countries: string[];
+    languages: string[];
+    workAuthorization: string | null;
   };
 }
 
@@ -93,6 +99,37 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
     const afterSave = await agent.ok<SettingsRead>('get_feed_settings');
     expect(afterSave.settings.salaryFloor).toBe(99000);
     expect(afterSave.revision).toBe(agentSave.revision + 1);
+    await page.close();
+  });
+
+  test('seniority set through the MCP shows in the editor, changes there, and a save never swaps in the CV estimate', async ({}, testInfo) => {
+    // The career profile reads this CV as senior, the estimate that used to replace every save.
+    seedCareerProfile(user.id);
+    const before = await agent.ok<SettingsRead>('get_feed_settings');
+    const set = await agent.ok<SettingsRead & { changed: string[] }>('update_feed_settings', { revision: before.revision, seniority: ['junior', 'mid'] });
+    expect(set.changed).toEqual(['seniority']);
+    expect([...set.settings.seniority].sort()).toEqual(['junior', 'mid']);
+    expect([...(await agent.ok<SettingsRead>('get_feed_settings')).settings.seniority].sort()).toEqual(['junior', 'mid']);
+
+    const page = await context.newPage();
+    await openEditor(page);
+    const levels = page.getByRole('group', { name: 'Seniority' });
+    await expect(levels.getByRole('button', { name: 'Junior' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(levels.getByRole('button', { name: 'Mid-level' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(levels.getByRole('button', { name: 'Senior' })).toHaveAttribute('aria-pressed', 'false');
+    await page.screenshot({ path: testInfo.outputPath('3-seniority-from-mcp.png'), fullPage: true });
+
+    // A save of something else keeps the levels; the profile's "senior" never comes back.
+    await page.getByLabel('Salary floor').fill('88000');
+    await page.getByRole('button', { name: 'Save preferences' }).click();
+    await expect(page.getByText('Saved.')).toBeVisible();
+    expect([...(await agent.ok<SettingsRead>('get_feed_settings')).settings.seniority].sort()).toEqual(['junior', 'mid']);
+
+    // The editor changes them too.
+    await levels.getByRole('button', { name: 'Junior' }).click();
+    await page.getByRole('button', { name: 'Save preferences' }).click();
+    await expect(page.getByText('Saved.')).toBeVisible();
+    expect((await agent.ok<SettingsRead>('get_feed_settings')).settings.seniority).toEqual(['mid']);
     await page.close();
   });
 
