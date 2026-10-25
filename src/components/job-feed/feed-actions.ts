@@ -299,8 +299,13 @@ export async function withdrawFeedConsent(): Promise<FeedResult<{ withdrawn: tru
  */
 export async function saveFeedSettings(
   input: JobFeedSettingsInput,
-  options?: { firstTime?: boolean; confirmedQueries?: ConfirmedSearchQuery[] },
-): Promise<FeedResult<JobFeedSettings | null>> {
+  options?: {
+    firstTime?: boolean;
+    confirmedQueries?: ConfirmedSearchQuery[];
+    /** The revision the edit started from. Defaults to the revision of the settings on screen now. */
+    expectedRevision?: number | null;
+  },
+): Promise<FeedResult<JobFeedSettings | null> & { stale?: boolean }> {
   if (isPreviewing()) {
     return { ok: true, data: null };
   }
@@ -321,17 +326,29 @@ export async function saveFeedSettings(
       useFeedStore.getState().patchBuild({ profileDone: true });
     }
 
+    const expectedRevision = options?.expectedRevision !== undefined
+      ? options.expectedRevision
+      : useFeedStore.getState().overview?.settings?.revision ?? null;
     const response = await fetch('/api/job-feed/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(
-        options?.confirmedQueries
-          ? { ...input, confirmed_queries: options.confirmedQueries }
-          : input,
-      ),
+      body: JSON.stringify({
+        ...input,
+        ...(options?.confirmedQueries ? { confirmed_queries: options.confirmedQueries } : {}),
+        ...(expectedRevision !== null ? { expected_revision: expectedRevision } : {}),
+      }),
     });
     const payload = await readJson(response);
     if (isStale(generation)) return { ok: false, error: 'Feed was reset.' };
+    if (response.status === 409 && payload.code === 'stale_settings') {
+      // Someone (an agent, another tab) saved newer settings. Load them so the form shows what is saved.
+      await loadFeedOverview({ quiet: true });
+      return {
+        ok: false,
+        stale: true,
+        error: typeof payload.error === 'string' ? payload.error : 'Your feed settings changed somewhere else. I loaded the latest. Check them and save again.',
+      };
+    }
     if (!response.ok) {
       return { ok: false, error: humanError(response.status, 'Your feed settings did not save.') };
     }

@@ -259,6 +259,7 @@ export function toPreviewJobFeedSettings(form: JobFeedSettingsInput): NonNullabl
 
   return {
     user_id: 'preview-user',
+    revision: 0,
     enabled: form.enabled,
     consent_accepted_at: form.consent_accepted ? now : null,
     user_timezone: form.user_timezone,

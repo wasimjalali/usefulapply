@@ -4,6 +4,9 @@
  * turn it into a ToolError. `code` is a short, content-free class for analytics.
  */
 export class FeedError extends Error {
+  /** For a stale settings save: the revision now saved, so the caller can say what to read again. */
+  currentRevision?: number | null;
+
   constructor(readonly status: number, message: string, readonly code: string) {
     super(message);
     this.name = 'FeedError';

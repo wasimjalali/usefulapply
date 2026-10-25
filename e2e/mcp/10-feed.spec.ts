@@ -57,6 +57,9 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     jobs = seedFeedInbox(user.id, JOBS);
   });
 
+  /** The settings revision now saved; update_feed_settings needs it. */
+  const revision = async () => (await agent.ok<{ revision: number }>('get_feed_settings')).revision;
+
   test.afterAll(async () => {
     await agent?.close();
     await context?.close();
@@ -131,7 +134,7 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     const country = properties.countries.items?.enum?.find((code) => code !== 'us') as string;
     const workMode = properties.workModes.items?.enum?.[0] as string;
 
-    const changed = await agent.ok<{ changed: string[]; settings: { roles: string[]; countries: string[]; workModes: string[]; salaryFloor: number | null; timezone: string }; searches: Array<{ role: string; country: string }> | null }>('update_feed_settings', {
+    const changed = await agent.ok<{ changed: string[]; settings: { roles: string[]; countries: string[]; workModes: string[]; salaryFloor: number | null; timezone: string }; searches: Array<{ role: string; country: string }> | null }>('update_feed_settings', { revision: await revision(),
       roles: ['Financial Controller', 'FP&A Manager'],
       countries: ['us', country],
       workModes: [workMode],
@@ -146,18 +149,18 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     expect(changed.searches?.length).toBeGreaterThan(0);
     const keptRoles = changed.settings.roles;
 
-    const same = await agent.ok<{ changed: string[]; searches: unknown }>('update_feed_settings', { salaryFloor: 90000 });
+    const same = await agent.ok<{ changed: string[]; searches: unknown }>('update_feed_settings', { revision: await revision(), salaryFloor: 90000 });
     expect(same.changed).toEqual([]);
     expect(same.searches).toBeNull();
     // The same roles again also change nothing, although the plan's search cap kept fewer of them than were sent.
-    const sameRoles = await agent.ok<{ changed: string[]; searches: unknown }>('update_feed_settings', { roles: ['Financial Controller', 'FP&A Manager'] });
+    const sameRoles = await agent.ok<{ changed: string[]; searches: unknown }>('update_feed_settings', { revision: await revision(), roles: ['Financial Controller', 'FP&A Manager'] });
     expect(sameRoles.changed).toEqual([]);
     expect(sameRoles.searches).toBeNull();
-    expect(await agent.fails('update_feed_settings', {})).toMatch(/at least one setting/i);
+    expect(await agent.fails('update_feed_settings', { revision: await revision() })).toMatch(/at least one setting/i);
 
     const declining = await agent.elicitingClient('decline');
     try {
-      const result = await declining.client.callTool({ name: 'update_feed_settings', arguments: { roles: ['Chief Executive'], salaryFloor: null } });
+      const result = await declining.client.callTool({ name: 'update_feed_settings', arguments: { revision: await revision(), roles: ['Chief Executive'], salaryFloor: null } });
       expect(result.isError).toBe(true);
       expect(declining.asked[0]).toMatch(/Change the job feed settings \(roles, salary floor\)/);
     } finally {
@@ -172,16 +175,16 @@ test.describe.serial('feed: reading, rating, settings, applying', () => {
     const types = (tools.find((tool) => tool.name === 'update_feed_settings')?.inputSchema as { properties: Record<string, { items?: { enum?: string[] } }> }).properties.employmentTypes.items?.enum;
     expect(types).toEqual(['full_time', 'part_time', 'contract', 'internship', 'temporary']);
 
-    const changed = await agent.ok<{ changed: string[]; settings: { employmentTypes: string[] } }>('update_feed_settings', { employmentTypes: ['contract', 'part_time'] });
+    const changed = await agent.ok<{ changed: string[]; settings: { employmentTypes: string[] } }>('update_feed_settings', { revision: await revision(), employmentTypes: ['contract', 'part_time'] });
     expect(changed.changed).toEqual(['employment types']);
     expect([...changed.settings.employmentTypes].sort()).toEqual(['contract', 'part_time']);
 
     // The same set in another order is no change.
-    const same = await agent.ok<{ changed: string[] }>('update_feed_settings', { employmentTypes: ['part_time', 'contract'] });
+    const same = await agent.ok<{ changed: string[] }>('update_feed_settings', { revision: await revision(), employmentTypes: ['part_time', 'contract'] });
     expect(same.changed).toEqual([]);
 
-    expect(await agent.fails('update_feed_settings', { employmentTypes: ['freelance'] })).toMatch(/Invalid option|invalid/i);
-    expect(await agent.fails('update_feed_settings', { employmentTypes: [] })).toMatch(/at least|too small|1/i);
+    expect(await agent.fails('update_feed_settings', { revision: await revision(), employmentTypes: ['freelance'] })).toMatch(/Invalid option|invalid/i);
+    expect(await agent.fails('update_feed_settings', { revision: await revision(), employmentTypes: [] })).toMatch(/at least|too small|1/i);
     const kept = await agent.ok<{ settings: { employmentTypes: string[] } }>('get_feed_settings');
     expect([...kept.settings.employmentTypes].sort()).toEqual(['contract', 'part_time']);
   });

@@ -131,11 +131,11 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         pill={editPill}
         onPillChange={(pill) => useFeedStore.getState().setEditPill(pill)}
         onBack={() => useFeedStore.getState().backToList()}
-        onSavePreferences={async (draft, plan) => {
-          const result = await saveFeedSettings(draft, { confirmedQueries: plan });
+        onSavePreferences={async (draft, plan, expectedRevision) => {
+          const result = await saveFeedSettings(draft, { confirmedQueries: plan, expectedRevision });
           return result.ok
-            ? { ok: true, settingsVersion: result.data?.updated_at ?? overview?.settings?.updated_at ?? null }
-            : { ok: false, error: result.error };
+            ? { ok: true, settingsVersion: result.data?.revision ?? overview?.settings?.revision ?? null }
+            : { ok: false, error: result.error, stale: result.stale === true };
         }}
       />
     );

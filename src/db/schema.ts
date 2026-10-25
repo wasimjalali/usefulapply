@@ -872,6 +872,8 @@ export const jobFeedSettings = sqliteTable(
     work_authorization_status: text('work_authorization_status'),
     user_skills: text('user_skills', { mode: 'json' }).$type<string[]>().notNull().$defaultFn(emptyArray),
     excluded_terms: text('excluded_terms', { mode: 'json' }).$type<string[]>().notNull().$defaultFn(emptyArray),
+    /** Moves up on every write; a save based on an older revision is refused (migration 0017). */
+    revision: integer('revision').notNull().default(0),
     created_at: text('created_at').notNull().$defaultFn(isoNow),
     updated_at: text('updated_at').notNull().$defaultFn(isoNow),
   },

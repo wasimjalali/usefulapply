@@ -35,8 +35,9 @@ interface FeedEditViewProps {
   pill: FeedEditPill;
   onPillChange: (pill: FeedEditPill) => void;
   onBack: () => void;
-  onSavePreferences: (draft: JobFeedSettingsInput, plan: ConfirmedSearchQuery[]) => Promise<
-    { ok: true; settingsVersion: string | null } | { ok: false; error: string }
+  /** `expectedRevision` is the settings revision the draft was made from; a newer saved one refuses the save. */
+  onSavePreferences: (draft: JobFeedSettingsInput, plan: ConfirmedSearchQuery[], expectedRevision: number | null) => Promise<
+    { ok: true; settingsVersion: number | null } | { ok: false; error: string; stale: boolean }
   >;
 }
 
@@ -94,28 +95,41 @@ export function FeedEditView({
       : null,
     [queryBudget, settingsInput, strategy],
   );
-  const settingsVersion = settings?.updated_at ?? null;
+  const settingsVersion = settings?.revision ?? null;
   const [draft, setDraft] = useState<PreferenceDraft | null>(nextDraft);
   const [savedDraft, setSavedDraft] = useState<PreferenceDraft | null>(nextDraft);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [saveError, setSaveError] = useState('');
+  /** Shown after a stale save, over the reloaded settings, until the next edit. */
+  const [staleNotice, setStaleNotice] = useState('');
   const [draftVersion, setDraftVersion] = useState(settingsVersion);
+  /** Set by a stale save: take in the newer settings even over unsaved edits. */
+  const [reloadDraft, setReloadDraft] = useState(false);
 
-  if (isNewerSettingsVersion(settingsVersion, draftVersion) && saveState !== 'saving' && saveState !== 'error') {
+  // Employment types are a set: the same types in another order are no change.
+  const sortedTypes = (value: PreferenceDraft) => ({ ...value, employmentTypes: [...value.employmentTypes].sort() });
+  const dirty = draft !== null && savedDraft !== null
+    && JSON.stringify(sortedTypes(draft)) !== JSON.stringify(sortedTypes(savedDraft));
+
+  // Newer saved settings replace a clean form. Unsaved edits are never replaced quietly: their save is
+  // refused as stale, and only then does the form take the newer settings in.
+  if (
+    isNewerSettingsVersion(settingsVersion, draftVersion)
+    && (!dirty || reloadDraft)
+    && saveState !== 'saving'
+    && saveState !== 'error'
+  ) {
     setDraft(nextDraft);
     setSavedDraft(nextDraft);
     setSaveState('idle');
     setSaveError('');
     setDraftVersion(settingsVersion);
+    setReloadDraft(false);
   }
 
   const plannedQueries = strategy?.queries ?? [];
   const todaysQueries = plannedQueries.slice(0, queryBudget);
   const laterQueries = plannedQueries.slice(queryBudget);
-  // Employment types are a set: the same types in another order are no change.
-  const sortedTypes = (value: PreferenceDraft) => ({ ...value, employmentTypes: [...value.employmentTypes].sort() });
-  const dirty = draft !== null && savedDraft !== null
-    && JSON.stringify(sortedTypes(draft)) !== JSON.stringify(sortedTypes(savedDraft));
   const salaryValue = draft?.salaryFloor.trim() ?? '';
   const salaryValid = salaryValue === ''
     || (/^\d+$/.test(salaryValue) && Number(salaryValue) >= 0);
@@ -129,11 +143,13 @@ export function FeedEditView({
     && draft.searchRows.every((row) => row.query.trim().length > 0),
   );
 
+  // An edit keeps the revision the draft was made from: a save then only goes through if nothing newer
+  // was saved meanwhile (by an agent through the MCP, or another tab).
   const updateDraft = (patch: Partial<PreferenceDraft>) => {
     setDraft((current) => current ? { ...current, ...patch } : current);
-    setDraftVersion(settingsVersion);
     setSaveState('idle');
     setSaveError('');
+    setStaleNotice('');
   };
 
   const savePreferences = async () => {
@@ -148,10 +164,17 @@ export function FeedEditView({
     setSaveError('');
     let result: Awaited<ReturnType<typeof onSavePreferences>>;
     try {
-      result = await onSavePreferences(toSettingsInput(settingsInput, { ...draft, searchRows: checked.queries }), checked.queries);
+      result = await onSavePreferences(toSettingsInput(settingsInput, { ...draft, searchRows: checked.queries }), checked.queries, draftVersion);
     } catch {
       setSaveState('error');
       setSaveError('Your preferences did not save. Try again.');
+      return;
+    }
+    if (!result.ok && result.stale) {
+      // The latest settings are loaded by now; going idle lets the form take them in.
+      setSaveState('idle');
+      setStaleNotice(result.error);
+      setReloadDraft(true);
       return;
     }
     if (!result.ok) {
@@ -399,6 +422,7 @@ export function FeedEditView({
                   <div className="mt-5 flex min-h-10 items-center justify-end gap-3 border-t border-border pt-4">
                     <div className="min-w-0 flex-1" aria-live="polite">
                       {saveState === 'saved' && <p className="text-sm text-ink-body">Saved.</p>}
+                      {staleNotice && saveState === 'idle' && <p className="text-sm text-danger-strong" role="alert">{staleNotice}</p>}
                       {saveState === 'error' && <p className="text-sm text-danger-strong">{saveError}</p>}
                     </div>
                     <button
@@ -561,11 +585,7 @@ function splitCommaList(value: string): string[] {
     .filter((item, index, items) => item.length > 0 && items.indexOf(item) === index);
 }
 
-function isNewerSettingsVersion(current: string | null, draft: string | null): boolean {
-  if (!current || current === draft) return false;
-  if (!draft) return true;
-  const currentTime = Date.parse(current);
-  const draftTime = Date.parse(draft);
-  if (!Number.isFinite(currentTime) || !Number.isFinite(draftTime)) return true;
-  return currentTime > draftTime;
+function isNewerSettingsVersion(current: number | null, draft: number | null): boolean {
+  if (current === null) return false;
+  return draft === null || current > draft;
 }

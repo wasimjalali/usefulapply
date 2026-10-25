@@ -30,6 +30,7 @@ import {
   type ConfirmedSearchQuery,
 } from '@/lib/job-feed/search-plan';
 import type { JobFeedSettings } from '@/db/types';
+import { RevisionConflict } from '@/lib/services/errors';
 import { FeedError } from './errors';
 
 // ---------------------------------------------------------------------------
@@ -87,13 +88,28 @@ export async function saveFeedSettings(params: {
   }
 
   const body = await params.readBody();
+  // The web form sends the revision it was opened at. A save without one comes from a tab opened before
+  // revisions existed, which may hold anything: it is treated as stale once a row exists.
+  const sent = (body as { expected_revision?: unknown } | null)?.expected_revision;
+  const expectedRevision = typeof sent === 'number' && Number.isInteger(sent) && sent >= 0 ? sent : -1;
   return persistFeedSettings({
     userId,
     subscriptionTier: profile.subscription_tier,
     body,
     clientRequestId: params.clientRequestId,
     llmRoute: params.llmRoute,
+    expectedRevision,
+    staleMessage: WEB_STALE_MESSAGE,
   });
+}
+
+const WEB_STALE_MESSAGE = 'Your feed settings changed somewhere else. I loaded the latest. Check them and save again.';
+
+/** A save based on an older revision than the row's. Nothing was written. */
+function staleSettings(message: string, currentRevision: number | null): FeedError {
+  const error = new FeedError(409, message, 'stale_settings');
+  error.currentRevision = currentRevision;
+  return error;
 }
 
 async function persistFeedSettings(params: {
@@ -102,6 +118,9 @@ async function persistFeedSettings(params: {
   body: unknown;
   clientRequestId: string | null;
   llmRoute: string;
+  /** The revision the caller read. Refused when the row has moved on (-1 never matches an existing row). */
+  expectedRevision: number;
+  staleMessage: string;
 }): Promise<{ settings: JobFeedSettings }> {
   const { userId, subscriptionTier, body } = params;
   const normalized = normalizeJobFeedSettingsInput(body);
@@ -118,6 +137,11 @@ async function persistFeedSettings(params: {
   }
 
   const existingSettings = await getSettings(userId);
+  // Checked before anything is written (the confirmed search list goes first); the conditional update
+  // below closes the window between this read and the write.
+  if (existingSettings ? existingSettings.revision !== params.expectedRevision : params.expectedRevision > 0) {
+    throw staleSettings(params.staleMessage, existingSettings?.revision ?? null);
+  }
 
   // A city named for the first time brings its country with it. Scoped to
   // new cities so unchecking a country still sticks.
@@ -241,8 +265,9 @@ async function persistFeedSettings(params: {
 
   let data;
   try {
-    data = await upsertSettings(userId, nextSettings);
+    data = await upsertSettings(userId, nextSettings, { expectedRevision: existingSettings ? params.expectedRevision : 0 });
   } catch (error) {
+    if (error instanceof RevisionConflict) throw staleSettings(params.staleMessage, error.currentRevision);
     console.error('[job-feed/settings] PUT error:', error instanceof Error ? error.message : error);
     throw new FeedError(500, 'Failed to save job feed settings.', 'save_failed');
   }
@@ -395,6 +420,8 @@ export async function updateFeedSettingsPartial(params: {
   userId: string;
   patch: FeedSettingsPatch;
   clientRequestId: string | null;
+  /** The revision from get_feed_settings. A newer saved revision refuses the change. */
+  expectedRevision: number;
 }): Promise<{ settings: JobFeedSettings; searches: ConfirmedSearchQuery[] | null; searchLimit: number }> {
   const { userId, patch } = params;
   const profile = await getProfile(userId);
@@ -442,6 +469,8 @@ export async function updateFeedSettingsPartial(params: {
     body,
     clientRequestId: params.clientRequestId,
     llmRoute: 'mcp:update_feed_settings',
+    expectedRevision: params.expectedRevision,
+    staleMessage: 'The feed settings changed after you read them. Read them again with get_feed_settings and send the new revision.',
   });
   return { settings, searches, searchLimit };
 }

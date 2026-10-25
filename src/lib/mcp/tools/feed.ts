@@ -260,6 +260,8 @@ const getFeedSettings = defineTool({
     configured: z.boolean(),
     canEdit: z.boolean(),
     consent: z.object({ given: z.boolean(), acceptedAt: z.string().nullable() }),
+    /** Send it with update_feed_settings. Null before the feed is set up. */
+    revision: z.number().nullable(),
     settings: settingsSchema.nullable(),
   }),
   async run(_args, { userId }) {
@@ -270,6 +272,7 @@ const getFeedSettings = defineTool({
         configured: settings !== null,
         canEdit,
         consent: { given: Boolean(settings?.consent_accepted_at), acceptedAt: settings?.consent_accepted_at ?? null },
+        revision: settings ? settings.revision : null,
         settings: settings ? toSettingsView(settings) : null,
       });
     });
@@ -287,6 +290,8 @@ const updateFeedSettings = defineTool({
     'Changes the given job feed settings and leaves the others as saved. Returns the settings after the change and, when the roles or countries changed, the role and country searches the next feed run will make.',
   hints: { readOnly: false, destructive: true, idempotent: true, openWorld: false },
   input: z.object({
+    revision: z.number().int().min(0)
+      .describe('The revision from get_feed_settings (0 before the feed is set up). If the settings changed since, in the web app or another call, nothing is changed and the call fails: read them again and send the new revision.'),
     roles: z.array(z.string().trim().min(1).max(80)).min(1).max(8).optional()
       .describe('Job titles to search for. Each feed run makes a limited number of role and country searches, so fewer roles may be kept than sent; the result lists the searches kept.'),
     countries: z.array(z.enum(COUNTRY_CODES)).min(1).max(12).optional()
@@ -304,6 +309,8 @@ const updateFeedSettings = defineTool({
   }),
   output: z.object({
     changed: z.array(z.string()),
+    /** The revision after this call; send it with the next update. */
+    revision: z.number(),
     settings: settingsSchema,
     searches: z.array(z.object({ role: z.string(), country: z.string() })).nullable(),
     searchLimit: z.number().nullable(),
@@ -324,11 +331,12 @@ const updateFeedSettings = defineTool({
       const { settings: before, searchLimit } = await loadFeedSettings(userId);
       const changed = changedFeedSettingFields(before, patch, searchLimit);
       if (before && changed.length === 0) {
-        return ok({ changed, settings: toSettingsView(before), searches: null, searchLimit: null });
+        return ok({ changed, revision: before.revision, settings: toSettingsView(before), searches: null, searchLimit: null });
       }
-      const saved = await updateFeedSettingsPartial({ userId, patch, clientRequestId: null });
+      const saved = await updateFeedSettingsPartial({ userId, patch, clientRequestId: null, expectedRevision: args.revision });
       return ok({
         changed,
+        revision: saved.settings.revision,
         settings: toSettingsView(saved.settings),
         searches: saved.searches ? saved.searches.map((row) => ({ role: row.query, country: row.targetCountry })) : null,
         searchLimit: saved.searchLimit,
@@ -338,6 +346,7 @@ const updateFeedSettings = defineTool({
 });
 
 function toPatch(args: {
+  revision?: number;
   roles?: string[];
   countries?: string[];
   workModes?: string[];

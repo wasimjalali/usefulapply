@@ -24,6 +24,7 @@ import type {
   JobFeedSettings,
   Json,
 } from '@/db/types';
+import { RevisionConflict } from '@/lib/services/errors';
 
 export async function getSettings(userId: string): Promise<JobFeedSettings | null> {
   const db = await getDb();
@@ -31,17 +32,36 @@ export async function getSettings(userId: string): Promise<JobFeedSettings | nul
   return (rows[0] as JobFeedSettings | undefined) ?? null;
 }
 
-export async function upsertSettings(userId: string, values: Record<string, unknown> & { user_id: string }): Promise<JobFeedSettings> {
+/**
+ * Write the settings row. Every write moves `revision` up by one. With `expectedRevision`, the write only
+ * happens while the row is still at that revision (a first insert counts as revision 0); otherwise it
+ * throws a RevisionConflict carrying the current revision and nothing changes.
+ */
+export async function upsertSettings(
+  userId: string,
+  values: Record<string, unknown> & { user_id: string },
+  options: { expectedRevision?: number } = {},
+): Promise<JobFeedSettings> {
   const db = await getDb();
   const now = nowIso();
   const existing = await getSettings(userId);
   const safe = stripIdentity(values);
+  delete safe.revision;
+  const { expectedRevision } = options;
   if (existing) {
-    await db
+    const conditions = [eq(jobFeedSettings.user_id, userId)];
+    if (expectedRevision !== undefined) conditions.push(eq(jobFeedSettings.revision, expectedRevision));
+    const updated = await db
       .update(jobFeedSettings)
-      .set({ ...safe, updated_at: now })
-      .where(eq(jobFeedSettings.user_id, userId));
+      .set({ ...safe, revision: sql`${jobFeedSettings.revision} + 1`, updated_at: now } as never)
+      .where(and(...conditions))
+      .returning({ revision: jobFeedSettings.revision });
+    if (updated.length === 0) {
+      const current = await getSettings(userId);
+      throw new RevisionConflict(current?.revision ?? null);
+    }
   } else {
+    if (expectedRevision !== undefined && expectedRevision !== 0) throw new RevisionConflict(null);
     await db.insert(jobFeedSettings).values({
       ...safe,
       user_id: userId,
@@ -69,8 +89,9 @@ export async function withdrawConsent(userId: string): Promise<JobFeedSettings |
     .set({
       consent_accepted_at: null,
       enabled: false,
+      revision: sql`${jobFeedSettings.revision} + 1`,
       updated_at: nowIso(),
-    })
+    } as never)
     .where(eq(jobFeedSettings.user_id, userId));
 
   return getSettings(userId);
@@ -87,8 +108,9 @@ export async function grantConsent(userId: string): Promise<JobFeedSettings> {
     .set({
       consent_accepted_at: new Date().toISOString(),
       enabled: true,
+      revision: sql`${jobFeedSettings.revision} + 1`,
       updated_at: nowIso(),
-    })
+    } as never)
     .where(eq(jobFeedSettings.user_id, userId));
   const row = await getSettings(userId);
   if (!row) throw new Error('Failed to persist job feed consent');
