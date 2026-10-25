@@ -378,6 +378,12 @@ export interface FeedSettingsPatch {
   timezone?: string;
   /** Levels the feed keeps; an empty list keeps every level. */
   seniority?: string[];
+  /** "Words to avoid" in the editor: titles, companies or keywords to keep out. An empty list clears them. */
+  excludedTerms?: string[];
+  /** A city named for the first time brings its country with it. An empty list clears them. */
+  cities?: string[];
+  languages?: string[];
+  workAuthorization?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null;
 }
 
 function sameSet(left: readonly string[], right: readonly string[]): boolean {
@@ -416,6 +422,10 @@ export function changedFeedSettingFields(existing: JobFeedSettings | null, patch
   if (patch.automationEnabled !== undefined && patch.automationEnabled !== Boolean(existing?.enabled)) changed.push('daily feed on or off');
   if (patch.timezone !== undefined && patch.timezone !== (existing ? current.user_timezone : undefined)) changed.push('timezone');
   if (patch.seniority && !sameSet(patch.seniority, current.seniority_targets)) changed.push('seniority');
+  if (patch.excludedTerms && !sameSet(patch.excludedTerms, current.excluded_terms)) changed.push('words to avoid');
+  if (patch.cities && !sameSet(patch.cities, current.target_cities)) changed.push('cities');
+  if (patch.languages && !sameSet(patch.languages, current.languages)) changed.push('languages');
+  if (patch.workAuthorization !== undefined && patch.workAuthorization !== current.work_authorization_status) changed.push('work authorization');
   return changed;
 }
 
@@ -463,6 +473,10 @@ export async function updateFeedSettingsPartial(params: {
     body.seniority_targets = patch.seniority;
     body.seniority_target = patch.seniority[0] ?? null;
   }
+  if (patch.excludedTerms) body.excluded_terms = patch.excludedTerms;
+  if (patch.cities) body.target_cities = patch.cities;
+  if (patch.languages) body.languages = patch.languages;
+  if (patch.workAuthorization !== undefined) body.work_authorization_status = patch.workAuthorization;
 
   const searchLimit = planCapForTier(profile.subscription_tier);
   let searches: ConfirmedSearchQuery[] | null = null;

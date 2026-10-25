@@ -133,6 +133,51 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
     await page.close();
   });
 
+  test('words to avoid, cities, languages and work authorization set through the MCP read back the same in get_feed_settings and the editor', async ({}, testInfo) => {
+    const before = await agent.ok<SettingsRead>('get_feed_settings');
+    expect(before.settings.countries).not.toContain('de');
+    const set = await agent.ok<SettingsRead & { changed: string[] }>('update_feed_settings', {
+      revision: before.revision,
+      excludedTerms: ['Sales', 'Randstad', 'sales'],
+      cities: ['Berlin'],
+      languages: ['English', 'German', 'Dari/Persian'],
+      workAuthorization: 'needs_sponsorship',
+    });
+    expect(set.changed).toEqual(expect.arrayContaining(['words to avoid', 'cities', 'languages', 'work authorization']));
+    const read = await agent.ok<SettingsRead>('get_feed_settings');
+    expect(read.settings).toMatchObject({
+      excludedTerms: ['Sales', 'Randstad'],
+      cities: ['Berlin'],
+      languages: ['English', 'German', 'Dari/Persian'],
+      workAuthorization: 'needs_sponsorship',
+    });
+    // Berlin brought Germany with it.
+    expect(read.settings.countries).toContain('de');
+
+    const page = await context.newPage();
+    await openEditor(page);
+    await expect(page.getByLabel('Words to avoid')).toHaveValue('Sales, Randstad');
+    await expect(page.getByLabel('Cities')).toHaveValue('Berlin');
+    await expect(page.getByLabel('Languages')).toHaveValue('English, German, Dari/Persian');
+    await expect(page.getByLabel('Work authorization')).toHaveValue('needs_sponsorship');
+    await expect(page.getByRole('button', { name: 'Remove Germany' })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('4-fields-from-mcp.png'), fullPage: true });
+
+    // And the other way: the editor's change is what the MCP reads.
+    await page.getByLabel('Words to avoid').fill('Sales, Randstad, Werkstudent');
+    await page.getByRole('button', { name: 'Save preferences' }).click();
+    await expect(page.getByText('Saved.')).toBeVisible();
+    expect((await agent.ok<SettingsRead>('get_feed_settings')).settings.excludedTerms).toEqual(['Sales', 'Randstad', 'Werkstudent']);
+    await page.close();
+
+    // Bad values are refused before anything is written.
+    const current = await agent.ok<SettingsRead>('get_feed_settings');
+    expect(await agent.fails('update_feed_settings', { revision: current.revision, workAuthorization: 'citizen' })).toMatch(/invalid/i);
+    expect(await agent.fails('update_feed_settings', { revision: current.revision, excludedTerms: ['x'.repeat(81)] })).toMatch(/too big|at most|80/i);
+    expect(await agent.fails('update_feed_settings', { revision: current.revision, languages: [] })).toMatch(/too small|at least|1/i);
+    expect((await agent.ok<SettingsRead>('get_feed_settings')).revision).toBe(current.revision);
+  });
+
   test('an agent sending an old revision is refused and nothing changes', async () => {
     const current = await agent.ok<SettingsRead>('get_feed_settings');
     const refused = await agent.fails('update_feed_settings', { revision: current.revision - 1, salaryFloor: 1 });

@@ -57,6 +57,7 @@ interface PreferenceDraft {
   searchRows: ConfirmedSearchQuery[];
   workAuthorization: JobFeedSettingsInput['work_authorization_status'];
   excludedTerms: string;
+  languages: string;
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -455,6 +456,18 @@ export function FeedEditView({
                         className="mt-1.5 h-10 w-full rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body outline-none transition-colors duration-(--duration-fast) placeholder:text-ink-muted focus:border-brand-strong focus:ring-2 focus:ring-brand-strong/15"
                       />
                     </div>
+
+                    <div>
+                      <label htmlFor="feed-languages" className="text-sm font-medium text-ink-body">Languages</label>
+                      <input
+                        id="feed-languages"
+                        type="text"
+                        value={draft.languages}
+                        onChange={(event) => updateDraft({ languages: event.target.value })}
+                        placeholder="English, German"
+                        className="mt-1.5 h-10 w-full rounded-control border border-border bg-surface-raised px-3 text-sm text-ink-body outline-none transition-colors duration-(--duration-fast) placeholder:text-ink-muted focus:border-brand-strong focus:ring-2 focus:ring-brand-strong/15"
+                      />
+                    </div>
                   </div>
 
                   <div className="mt-5 flex min-h-10 items-center justify-end gap-3 border-t border-border pt-4">
@@ -596,6 +609,7 @@ function toPreferenceDraft(
     searchRows,
     workAuthorization: input.work_authorization_status,
     excludedTerms: input.excluded_terms.join(', '),
+    languages: input.languages.join(', '),
   };
 }
 
@@ -616,6 +630,7 @@ function toSettingsInput(base: JobFeedSettingsInput, draft: PreferenceDraft): Jo
     salary_floor: salary ? Number(salary) : null,
     work_authorization_status: draft.workAuthorization,
     excluded_terms: splitCommaList(draft.excludedTerms),
+    languages: splitCommaList(draft.languages),
   };
 }
 

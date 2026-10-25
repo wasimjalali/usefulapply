@@ -314,6 +314,14 @@ const updateFeedSettings = defineTool({
       .describe('IANA timezone name, for example Europe/Berlin. The one run a day follows this timezone.'),
     seniority: z.array(z.enum(SENIORITY)).max(SENIORITY.length).optional()
       .describe(`Levels to keep: ${SENIORITY.join(', ')}. A job whose ad is only for other levels is left out of the feed; an ad that does not say is kept. An empty list keeps every level.`),
+    excludedTerms: z.array(z.string().trim().min(1).max(80)).max(20).optional()
+      .describe('Words to avoid: titles, companies or keywords the user never wants to see, for example "Sales" or a staffing agency. Up to 20. An empty list clears them.'),
+    cities: z.array(z.string().trim().min(1).max(80)).max(20).optional()
+      .describe('Cities to search in, for example Berlin. A city named for the first time adds its country to the countries. Up to 20. An empty list clears them.'),
+    languages: z.array(z.string().trim().min(1).max(40)).min(1).max(10).optional()
+      .describe('Languages the user works in, as names, for example English, German. The ranking keeps ads written in or asking for these.'),
+    workAuthorization: z.enum(['authorized', 'needs_sponsorship', 'open_to_both']).nullable().optional()
+      .describe('authorized: may work in the target countries. needs_sponsorship: needs a visa sponsor; ads that rule sponsorship out are left out. open_to_both. null clears it.'),
   }),
   output: z.object({
     changed: z.array(z.string()),
@@ -363,6 +371,10 @@ function toPatch(args: {
   automationEnabled?: boolean;
   timezone?: string;
   seniority?: string[];
+  excludedTerms?: string[];
+  cities?: string[];
+  languages?: string[];
+  workAuthorization?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null;
 }): FeedSettingsPatch {
   const patch: FeedSettingsPatch = {};
   if (args.roles !== undefined) patch.roles = args.roles;
@@ -373,7 +385,22 @@ function toPatch(args: {
   if (args.automationEnabled !== undefined) patch.automationEnabled = args.automationEnabled;
   if (args.timezone !== undefined) patch.timezone = args.timezone;
   if (args.seniority !== undefined) patch.seniority = [...new Set(args.seniority)];
+  if (args.excludedTerms !== undefined) patch.excludedTerms = dedupeCaseless(args.excludedTerms);
+  if (args.cities !== undefined) patch.cities = dedupeCaseless(args.cities);
+  if (args.languages !== undefined) patch.languages = dedupeCaseless(args.languages);
+  if (args.workAuthorization !== undefined) patch.workAuthorization = args.workAuthorization;
   return patch;
+}
+
+/** The first spelling of each value, compared without case. */
+function dedupeCaseless(values: string[]): string[] {
+  const seen = new Set<string>();
+  return values.filter((value) => {
+    const key = value.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 // ---------------------------------------------------------------------------
