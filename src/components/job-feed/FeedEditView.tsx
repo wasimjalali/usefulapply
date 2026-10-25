@@ -332,7 +332,7 @@ export function FeedEditView({
                               className={`inline-flex h-10 items-center gap-1.5 rounded-pill border px-3 text-sm transition-colors duration-(--duration-fast) ${
                                 selected
                                   ? 'border-brand-strong bg-surface-raised font-semibold text-ink'
-                                  : 'border-border bg-surface-raised text-ink-body hover:border-border-strong'
+                                  : 'border-border bg-surface-raised text-ink-body hover:border-border-brand-soft'
                               }`}
                             >
                               {selected && <Check className="h-3.5 w-3.5" />}

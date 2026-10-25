@@ -213,6 +213,9 @@ const webServers = [
             // Signs export links, so the web downloads reach the renderer. PDFs still fail here (Browser Run
             // does not run locally), which is the failure p-export-browser-run-only.spec.ts needs; DOCX and TXT render.
             '--var EXPORT_SIGNING_SECRET:e2e-export-signing-secret',
+            // Test-only. Without it every sign-up and sign-in logs an error stack, and wrangler re-parses the worker's
+            // source map per stack on the loop the local IMAGES binding shares, stalling images on the next screen.
+            '--var ADMIN_METRICS_HASH_KEY:e2e-only-admin-metrics-hash-key',
             ...FALLBACK_SECRET_VARS,
           ].join(' '),
           url: BASE_URL,

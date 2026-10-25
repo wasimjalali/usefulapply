@@ -1967,7 +1967,7 @@ export function ChatPanel({
                       className={`w-full resize-none rounded-control border bg-surface-raised px-3.5 py-3 text-sm text-ink-body placeholder:text-ink-muted/70 focus:outline-none transition-colors duration-(--duration-base) ${
                         heroFocusRing
                           ? 'border-accent ring-2 ring-border-accent'
-                          : 'border-border focus:border-border-accent focus:ring-2 focus:ring-border-accent/50'
+                          : 'border-border focus:border-border-focus focus:ring-2 focus:ring-focus-ring-soft/40'
                       }`}
                     />
 
