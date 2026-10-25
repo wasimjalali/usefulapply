@@ -5,9 +5,11 @@ import { LEGAL } from '@/lib/legal';
 
 export function LegalShell({
   title,
+  updated = LEGAL.updated,
   children,
 }: {
   title: string;
+  updated?: string;
   children: ReactNode;
 }) {
   return (
@@ -17,7 +19,7 @@ export function LegalShell({
         <section className="py-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-4xl font-semibold text-brand mb-4">{title}</h1>
-            <p className="text-ink-muted mb-2">Last updated: {LEGAL.updated}</p>
+            <p className="text-ink-muted mb-2">Last updated: {updated}</p>
             <p className="text-ink-muted mb-8">{LEGAL.entityLine}</p>
             <div className="prose prose-lg max-w-none text-ink-body space-y-8">{children}</div>
           </div>

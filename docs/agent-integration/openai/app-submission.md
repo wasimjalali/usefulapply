@@ -46,7 +46,7 @@ After publishing, server tool changes are scanned daily and go live on their own
 | Verify the individual or organization in the OpenAI Platform dashboard | Wasim | open |
 | `/mcp` live | done, live since 2026-10-21 | done |
 | Domain challenge route live (`/.well-known/openai-apps-challenge`) and `OPENAI_APPS_CHALLENGE` secret set | the route is live and returns 404 until the secret is set. Wasim gets the token from the dashboard | open |
-| Reviewer account `reviewer+openai@usefulapply.com` seeded on production (the Anthropic portal gets its own account), credentials entered in Review details | Wasim runs the seed after a yes in session, with the production command in `../submission/checklist.md` | open |
+| Reviewer account `reviewer+openai@usefulapply.com` seeded on production (the Anthropic portal gets its own account), credentials entered in Review details | Seeded on production 2026-10-25 (`../submission/checklist.md`). Left: Wasim enters the credentials in Review details, after a seed re-run right before the review window | open |
 | Demo recording URL | Wasim records, see `../submission/screenshots.md` | open |
 | Tested on desktop and mobile in ChatGPT developer mode | desktop done on 2026-10-21 (launch live checks). Mobile: Wasim | open |
 
