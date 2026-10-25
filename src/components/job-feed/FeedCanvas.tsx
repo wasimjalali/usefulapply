@@ -91,7 +91,8 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   // for an empty day, and telling the user "2 searches" when one runs would be
   // a promise the normal day does not keep.
   const queryBudget = getJobFeedTierLimits(tier ?? 'free').maxMainQueries;
-  const searchListCap = searchListCapForTier(tier ?? 'free');
+  // The overview's runs a day include the account's own override, which the list is sized by too.
+  const searchListCap = searchListCapForTier(tier ?? 'free', overview?.runsPerDay ?? null);
   // The server allows a dismiss on Plus and Max only, so Free never sees the button.
   const canDismiss = (tier === 'plus' || tier === 'max') && !readOnly;
   const canAffordFit = credits === null || credits.total >= CREDIT_COSTS.FIT_ANALYSIS;

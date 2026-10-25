@@ -141,6 +141,13 @@
       "when": 1787238583126,
       "tag": "0020_settings_revision_floor",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1787238643126,
+      "tag": "0021_profile_feed_runs_per_day",
+      "breakpoints": true
     }
   ]
 }

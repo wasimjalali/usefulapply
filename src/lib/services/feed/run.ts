@@ -122,11 +122,11 @@ interface RunGate {
   now: Date;
   latestManualRun: JobFeedRun | null;
   cooldown: ReturnType<typeof getCalendarDayCooldown>;
-  /** The plan's runs a day. */
+  /** Runs a day: the account's own override, else the plan's. */
   runsPerDay: number;
-  /** Completed runs the plan still allows today (multi-run plans; 0 or 1 on a one-run plan). */
+  /** Completed runs still allowed today (several a day; 0 or 1 at one a day). */
   runsLeftToday: number;
-  /** Set when today's latest run completed and the plan allows another: the slot the next run takes. */
+  /** Set when today's latest run completed and another is allowed: the slot the next run takes. */
   nextRunSlot?: number;
   /** Today's runs that had completed when the gate was read (multi-run plans). */
   completedRunIds?: Set<string>;
@@ -176,7 +176,8 @@ async function readRunGate(userId: string): Promise<RunGate> {
     timeZone,
     now,
   });
-  const { runsPerDay } = getJobFeedTierLimits(profile.subscription_tier);
+  // An account's own override (set by hand) wins over its plan's runs a day.
+  const runsPerDay = profile.job_feed_runs_per_day ?? getJobFeedTierLimits(profile.subscription_tier).runsPerDay;
   if (runsPerDay <= 1) {
     return { timeZone, now, latestManualRun, cooldown, runsPerDay, runsLeftToday: cooldown.blocked ? 0 : 1 };
   }
@@ -252,7 +253,7 @@ export interface QueuedFeedRunResponse {
   rawJobsFetched: number | null;
   jobsAfterPrefilter: number | null;
   rankedJobsCount: number | null;
-  /** Completed runs the plan still allows today, not counting this one if it is still to finish. */
+  /** Completed runs still allowed today, not counting this one if it is still to finish. */
   runsLeftToday: number;
   runsPerDay: number;
   /** Which run of the day this is, from 0. */
