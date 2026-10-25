@@ -12,7 +12,7 @@ import { FIT_CLOSING_BEFORE_2026_10_23 } from '../../src/components/chat/useAgen
  * the model is scripted.
  *
  *  1. A reload of a saved application with a long history never flickers: once a message is painted the transcript never
- *     goes empty and "Loading the conversation" never comes back, and the sidebar never claims "No applications yet.".
+ *     goes empty and "Loading the conversation" never comes back, and the sidebar never shows its empty state ("Applications you start show up here.").
  *  2. A new user's first kit through the guided line (fit then kit, and a direct run), three runs, the first cold: "The kit
  *     didn't finish" never shows on any frame and the workspace ends on the kit.
  *  3. The fit message no longer says "generate the full application below", and an old stored one has the line hidden once a
@@ -154,7 +154,7 @@ async function installSampler(page: Page): Promise<void> {
       w.__frames.push({
         bubbles: scroller ? scroller.querySelectorAll('.group\\/msg').length : 0,
         loading: text.includes('Loading the conversation'),
-        noApps: text.includes('No applications yet.'),
+        noApps: text.includes('Applications you start show up here.'),
         emptyCard: text.includes('already has the saved job description'),
         kitFailed: text.includes("The kit didn't finish"),
         fitFailed: text.includes("The fit check didn't finish"),
@@ -194,7 +194,7 @@ test.describe('chat round 2', () => {
     await fakeReset();
   });
 
-  test('(1) a reload with a long history never paints nothing after the first message, never says "Loading" after it, and the sidebar never says "No applications yet."', async ({ browser, request }) => {
+  test('(1) a reload with a long history never paints nothing after the first message, never says "Loading" after it, and the sidebar never shows its empty state', async ({ browser, request }) => {
     test.setTimeout(300_000);
     const { user, context, page, application } = await userWithKit(browser, request, 'r2reload');
     try {
@@ -225,7 +225,7 @@ test.describe('chat round 2', () => {
           const after = frames.slice(firstPainted);
           expect.soft(after.filter((frame) => frame.bubbles === 0).length, `${run}: frames with an empty transcript after the first message (bubbles: ${runs(frames, (frame) => frame.bubbles)}; empty frames showed: ${JSON.stringify([...new Set(after.filter((frame) => frame.bubbles === 0).map((frame) => `${frame.scroller} ${frame.snippet}`))])})`).toBe(0);
           expect.soft(after.filter((frame) => frame.loading).length, `${run}: "Loading the conversation" after the first message`).toBe(0);
-          expect.soft(frames.filter((frame) => frame.noApps).length, `${run}: frames with "No applications yet."`).toBe(0);
+          expect.soft(frames.filter((frame) => frame.noApps).length, `${run}: frames with the sidebar's empty state`).toBe(0);
           expect.soft(frames.filter((frame) => frame.emptyCard).length, `${run}: frames with the empty-conversation card`).toBe(0);
           // The count only ever grows: the server's transcript replaces a shorter cached one, never a blank in between.
           for (let i = 1; i < after.length; i += 1) expect.soft(after[i].bubbles, `${run}: frame ${i}`).toBeGreaterThanOrEqual(after[i - 1].bubbles);

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePostHog } from 'posthog-js/react';
-import { Send } from 'lucide-react';
+import { ChatInput } from '@/components/chat/ChatInput';
 import { BrandIcon } from '@/components/BrandLogo';
 import { MarkdownText } from '@/components/MarkdownText';
 import { NamedStages, type NamedStage } from '@/components/shell/NamedStages';
@@ -917,39 +917,23 @@ export function FeedConversation() {
 
       {!(phase === 'setup' && setupStep >= 2) && (
       <div className="flex-shrink-0 bg-surface px-5 pb-4 pt-2.5">
-        <div className="flex items-end gap-2 rounded-card border border-border bg-surface-raised px-3.5 py-2.5 shadow-resting">
-          <textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                void handleSend();
-              }
-            }}
-            rows={1}
-            disabled={busy || isSavingSettings}
-            placeholder={
-              phase === 'setup' && setupStep === 0
-                ? 'Or type a country I search'
-                : phase === 'setup' && setupStep === 1
-                  ? 'Or type a city I know'
-                  : phase === 'building'
-                    ? "You can keep typing, I'll answer after this"
-                    : 'Tell me what to change, e.g. "more remote, no agencies"'
-            }
-            className="max-h-32 min-h-[24px] flex-1 resize-none bg-transparent text-sm text-ink-body placeholder:text-ink-faint focus:outline-none disabled:cursor-not-allowed"
-          />
-          <button
-            type="button"
-            onClick={() => { void handleSend(); }}
-            disabled={!input.trim() || busy || isSavingSettings}
-            aria-label="Send"
-            className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-pill bg-accent text-accent-ink transition-colors duration-(--duration-base) hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-sunken disabled:text-ink-muted cursor-pointer"
-          >
-            <Send className="h-4 w-4" />
-          </button>
-        </div>
+        <ChatInput
+          value={input}
+          onChange={setInput}
+          onSend={() => { void handleSend(); }}
+          disabled={busy || isSavingSettings}
+          surface="embedded"
+          label="Message about your feed"
+          placeholder={
+            phase === 'setup' && setupStep === 0
+              ? 'Or type a country I search'
+              : phase === 'setup' && setupStep === 1
+                ? 'Or type a city I know'
+                : phase === 'building'
+                  ? "You can keep typing, I'll answer after this"
+                  : 'Tell me what to change, e.g. "more remote, no agencies"'
+          }
+        />
       </div>
       )}
     </section>
