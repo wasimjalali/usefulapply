@@ -43,12 +43,6 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
     setPlan(user.id, 'max');
     seedFeedSettings(user.id);
     seedFeedInbox(user.id, [{ title: 'Financial Controller', company: 'Fabrikam', fitLabel: 'strong' }]);
-    // The sidebar, and with it the Job Board, shows once the account has an application.
-    await agent.ok('create_application', {
-      jobDescription: 'Financial Controller at Fabrikam. You own month-end close and the rolling forecast. Required: IFRS, Excel.',
-      title: 'Financial Controller',
-      company: 'Fabrikam',
-    });
   });
 
   test.afterAll(async () => {
@@ -57,11 +51,9 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
   });
 
   async function openEditor(page: Page): Promise<void> {
-    await page.goto('/dashboard');
+    // The job feed by its own link: this account has no kit, so the dashboard would open on the guided line.
+    await page.goto('/dashboard?workspace=job-feed');
     await page.waitForLoadState('networkidle');
-    const nav = page.getByRole('navigation', { name: 'Workspace' }).getByRole('button', { name: /^Job Board/ });
-    await nav.click();
-    await expect(nav).toHaveAttribute('aria-current', 'page');
     await page.getByRole('button', { name: 'Edit feed' }).click();
     await expect(page.getByRole('heading', { name: 'How I search for you' })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByLabel('Salary floor')).toBeVisible();
@@ -202,9 +194,8 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
 
     const page = await context.newPage();
     await openEditor(page);
-    for (const query of ['Applied AI Engineer', 'KI-Ingenieur', 'AI Automation Engineer']) {
-      await expect(page.getByDisplayValue(query, { exact: true })).toHaveCount(1);
-    }
+    const inputValues = () => page.locator('input').evaluateAll((inputs) => inputs.map((input) => (input as HTMLInputElement).value));
+    await expect.poll(inputValues).toEqual(expect.arrayContaining(['Applied AI Engineer', 'KI-Ingenieur', 'AI Automation Engineer']));
     await page.screenshot({ path: testInfo.outputPath('5-searches-from-mcp.png'), fullPage: true });
     await page.close();
 
