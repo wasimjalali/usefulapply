@@ -617,7 +617,8 @@ async function main(): Promise<void> {
     const timeZone = 'Europe/Berlin';
     const now = new Date();
     // Stored under another date (as a run under another timezone would be), but completed a moment ago: today's here.
-    await run("UPDATE job_feed_runs SET local_date = '2000-01-01', completed_at = ? WHERE user_id = ?", new Date(now.getTime() - 1000).toISOString(), runsUser);
+    // A run's idempotency key names its date, so it moves with the run.
+    await run("UPDATE job_feed_runs SET local_date = '2000-01-01', idempotency_key = 'moved:' || id, completed_at = ? WHERE user_id = ?", new Date(now.getTime() - 1000).toISOString(), runsUser);
     const shifted = await queueFeedRun(runsUser);
     assert.equal(shifted.started, false, 'a timezone change opens no more runs today');
     assert.equal(shifted.runsLeftToday, 0);
