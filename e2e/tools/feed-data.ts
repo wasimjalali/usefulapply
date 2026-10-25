@@ -343,6 +343,22 @@ async function main(): Promise<void> {
     return { pages: feed.pages, longest: Math.max(...lengths) };
   });
 
+  await scenario('d4. a 190-character apply link comes back whole in applyUrl, applyOptions and the stored row', async () => {
+    const row = await stored('thermondo');
+    assert.equal(row.apply_url, LONG_APPLY, 'stored whole');
+    const item = byCompany(feed.items, 'Thermondo');
+    assert.equal(unwrap(item.applyUrl), LONG_APPLY);
+    assert.deepEqual(item.applyOptions?.map((option) => unwrap(option.link)), [LONG_APPLY]);
+    assert.equal(unwrap(item.sourceUrl), String(row.source_url), 'the share link too');
+    assert.ok(String(row.source_url).length > 80, 'the share link is longer than the old cap');
+    for (const view of feed.items) {
+      for (const link of [view.applyUrl, view.sourceUrl, ...(view.applyOptions ?? []).map((option) => option.link)]) {
+        if (link) assert.doesNotThrow(() => new URL(unwrap(link)), `a usable URL: ${link}`);
+      }
+    }
+    return { applyUrlLength: LONG_APPLY.length };
+  });
+
   await scenario('d9. nothing left the machine except the stubbed SerpAPI calls and the stubbed employer pages', async () => {
     assert.deepEqual(strayRequests, []);
     return { serpCalls: serp.calls, pageRequests: pageRequests.length };

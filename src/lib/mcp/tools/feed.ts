@@ -20,6 +20,7 @@ import {
   waitSecondsField,
   wrapLong,
   wrapShort,
+  wrapUrl,
 } from '@/lib/mcp/tools/shared';
 import { requireFeedViewer } from '@/lib/services/feed/access';
 import { applyToFeedJob } from '@/lib/services/feed/apply';
@@ -131,7 +132,7 @@ function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full'): z.in
     salaryText: item.salaryText ? wrapShort(item.salaryText) : null,
     postedAtText: item.postedAtText ? wrapShort(item.postedAtText) : null,
     via: item.via ? wrapShort(item.via) : null,
-    applyUrl: item.applyUrl ? wrapShort(item.applyUrl) : null,
+    applyUrl: wrapUrl(item.applyUrl),
     fitLabel: item.fitLabel,
     matchReason: wrapOrNull(item.matchReason, 1000),
     saved: Boolean(item.feedback.savedAt),
@@ -147,8 +148,11 @@ function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full'): z.in
       title: wrapShort(highlight.title),
       items: highlight.items.map((entry) => wrapShort(entry)),
     }));
-    view.sourceUrl = item.sourceUrl ? wrapShort(item.sourceUrl) : null;
-    view.applyOptions = item.applyOptions.map((option) => ({ title: wrapShort(option.title), link: wrapShort(option.link) }));
+    view.sourceUrl = wrapUrl(item.sourceUrl);
+    view.applyOptions = item.applyOptions.flatMap((option) => {
+      const link = wrapUrl(option.link);
+      return link ? [{ title: wrapShort(option.title), link }] : [];
+    });
   }
   return view;
 }
