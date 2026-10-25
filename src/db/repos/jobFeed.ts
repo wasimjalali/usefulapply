@@ -61,10 +61,12 @@ export async function upsertSettings(
       throw new RevisionConflict(current?.revision ?? null);
     }
   } else {
+    // A first row starts at revision 1, so 0 only ever means "no settings yet".
     if (expectedRevision !== undefined && expectedRevision !== 0) throw new RevisionConflict(null);
     await db.insert(jobFeedSettings).values({
       ...safe,
       user_id: userId,
+      revision: 1,
       created_at: now,
       updated_at: now,
     });
@@ -72,6 +74,25 @@ export async function upsertSettings(
   const row = await getSettings(userId);
   if (!row) throw new Error('Failed to persist job feed settings');
   return row;
+}
+
+/**
+ * Move the revision on from `expected` and return the new one, writing nothing else: a save claims the
+ * revision before a write of its own (the confirmed search list), so a save that lost the race stops there.
+ * Throws a RevisionConflict carrying the current revision when the row has moved on.
+ */
+export async function reserveSettingsRevision(userId: string, expected: number): Promise<number> {
+  const db = await getDb();
+  const updated = await db
+    .update(jobFeedSettings)
+    .set({ revision: sql`${jobFeedSettings.revision} + 1`, updated_at: nowIso() } as never)
+    .where(and(eq(jobFeedSettings.user_id, userId), eq(jobFeedSettings.revision, expected)))
+    .returning({ revision: jobFeedSettings.revision });
+  if (updated.length === 0) {
+    const current = await getSettings(userId);
+    throw new RevisionConflict(current?.revision ?? null);
+  }
+  return updated[0].revision;
 }
 
 /**

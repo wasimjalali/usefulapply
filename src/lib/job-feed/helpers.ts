@@ -254,7 +254,8 @@ export function toJobFeedInput(settings: JobFeedSettings | null, fallbackTimeZon
     remote_preferences: remotePreferences as JobFeedSettingsInput['remote_preferences'],
     salary_floor: settings.salary_floor,
     languages: settings.languages.length > 0 ? settings.languages : ['English'],
-    seniority_target: settings.seniority_target ?? JOB_FEED_DEFAULT_SETTINGS.seniority_target,
+    // Null stays null: a cleared seniority (every level) must not come back as the default on the next save.
+    seniority_target: (settings.seniority_target ?? null) as JobFeedSettingsInput['seniority_target'],
     seniority_targets: seniorityTargets as JobFeedSettingsInput['seniority_targets'],
     employment_types: settings.employment_types.length > 0
       ? settings.employment_types

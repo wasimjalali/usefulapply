@@ -77,34 +77,119 @@ function asHeading(text: string): string {
   return /[:.!?]$/.test(clean) ? clean : `${clean}:`;
 }
 
+/** A bold-only paragraph reads as a heading when it is short and not a sentence. */
+function isHeadingLike(text: string): boolean {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  return clean.length > 0 && clean.length <= 80 && !/[.!?]$/.test(clean);
+}
+
+/** Past this much HTML the rest is not read: real ads are a few tens of KB. */
+const MAX_HTML_CHARS = 200_000;
+const SKIPPED_TAGS = new Set(['script', 'style', 'noscript', 'template']);
+const BLOCK_TAGS = new Set(['p', 'div', 'section', 'article', 'ul', 'ol', 'table', 'tr', 'header', 'footer', 'blockquote']);
+
 /**
  * The ad's HTML as plain text: list items as "- item" lines, paragraphs and breaks as line breaks,
- * headings (and a paragraph that is nothing but bold text) on a line of their own ending in a colon.
+ * headings (and a short paragraph that is nothing but bold text) on a line of their own ending in a colon.
+ *
+ * One pass over the tags with indexOf, so the work grows with the length of the HTML and an unclosed
+ * tag or comment ends the read instead of being searched for again from every opener. The HTML is a
+ * stranger's page.
  */
 export function htmlToAdText(html: string): string {
-  let text = html
-    .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/<(script|style|noscript|template)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
-    .replace(/\r\n?/g, '\n')
-    // Source line breaks inside HTML are layout, not content.
-    .replace(/\n/g, ' ');
+  const source = html.length > MAX_HTML_CHARS ? html.slice(0, MAX_HTML_CHARS) : html;
+  const lower = source.toLowerCase();
+  const out: string[] = [];
+  let heading: string[] | null = null;
+  let paragraph: { parts: string[]; boldDepth: number; sawBold: boolean; plainText: boolean } | null = null;
 
-  text = text.replace(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/gi, (_m, inner: string) => `\n\n${asHeading(stripTags(inner))}\n`);
-  // <p><strong>Your tasks</strong></p> is how most boards write a heading.
-  text = text.replace(
-    /<p[^>]*>\s*<(strong|b)[^>]*>([\s\S]*?)<\/\1>\s*(?:<br\s*\/?>\s*)?<\/p>/gi,
-    (_m, _tag: string, inner: string) => `\n\n${asHeading(stripTags(inner))}\n`,
-  );
-  text = text
-    .replace(/<li[^>]*>/gi, '\n- ')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/?(p|div|section|article|ul|ol|table|tr|header|footer|blockquote)[^>]*>/gi, '\n\n')
-    .replace(/<\/?(td|th)[^>]*>/gi, ' ');
+  const write = (text: string) => {
+    if (heading) heading.push(text);
+    else if (paragraph) paragraph.parts.push(text);
+    else out.push(text);
+  };
+  const writeText = (raw: string) => {
+    const text = decodeHtmlEntities(raw.replace(/\s+/g, ' '));
+    if (paragraph && !heading && text.trim()) {
+      if (paragraph.boldDepth > 0) paragraph.sawBold = true;
+      else paragraph.plainText = true;
+    }
+    write(text);
+  };
+  const closeParagraph = () => {
+    if (!paragraph) return;
+    const text = paragraph.parts.join('');
+    const boldHeading = paragraph.sawBold && !paragraph.plainText && isHeadingLike(text);
+    paragraph = null;
+    out.push(boldHeading ? `\n\n${asHeading(text)}\n` : `\n\n${text}\n\n`);
+  };
 
-  text = decodeHtmlEntities(stripTags(text));
+  let at = 0;
+  while (at < source.length) {
+    const open = source.indexOf('<', at);
+    const textEnd = open === -1 ? source.length : open;
+    if (textEnd > at) writeText(source.slice(at, textEnd));
+    if (open === -1) break;
+    if (source.startsWith('<!--', open)) {
+      const close = source.indexOf('-->', open + 4);
+      if (close === -1) break;
+      at = close + 3;
+      continue;
+    }
+    const gt = source.indexOf('>', open + 1);
+    if (gt === -1) break;
+    const tag = /^(\/?)\s*([a-zA-Z][a-zA-Z0-9]*)/.exec(source.slice(open + 1, Math.min(gt, open + 40)));
+    at = gt + 1;
+    if (!tag) continue;
+    const closing = tag[1] === '/';
+    const name = tag[2].toLowerCase();
 
-  return text
+    if (!closing && SKIPPED_TAGS.has(name)) {
+      const close = lower.indexOf(`</${name}`, at);
+      if (close === -1) break;
+      const end = source.indexOf('>', close);
+      at = end === -1 ? source.length : end + 1;
+      continue;
+    }
+    if (/^h[1-6]$/.test(name)) {
+      if (!closing) {
+        closeParagraph();
+        heading = [];
+      } else if (heading) {
+        const text = heading.join('');
+        heading = null;
+        out.push(`\n\n${asHeading(text)}\n`);
+      }
+      continue;
+    }
+    if (name === 'p') {
+      closeParagraph();
+      if (!closing) paragraph = { parts: [], boldDepth: 0, sawBold: false, plainText: false };
+      continue;
+    }
+    if (name === 'strong' || name === 'b') {
+      if (paragraph) paragraph.boldDepth = Math.max(0, paragraph.boldDepth + (closing ? -1 : 1));
+      continue;
+    }
+    if (name === 'li') {
+      // An item starts its own line; the next item or block ends it.
+      if (!closing) write('\n- ');
+      continue;
+    }
+    if (name === 'br') {
+      write('\n');
+      continue;
+    }
+    if (BLOCK_TAGS.has(name)) {
+      write('\n\n');
+      continue;
+    }
+    if (name === 'td' || name === 'th') write(' ');
+  }
+  closeParagraph();
+  if (heading) out.push(`\n\n${asHeading(heading.join(''))}\n`);
+
+  return out.join('')
     .replace(/\u00a0/g, ' ')
     .replace(/[ \t\f\v]+/g, ' ')
     .replace(/ *\n */g, '\n')
@@ -114,10 +199,6 @@ export function htmlToAdText(html: string): string {
     .trim();
 }
 
-function stripTags(value: string): string {
-  return value.replace(/<[^>]*>/g, ' ');
-}
-
 // ---------------------------------------------------------------------------
 // JSON-LD
 // ---------------------------------------------------------------------------
@@ -125,6 +206,8 @@ function stripTags(value: string): string {
 interface JobPostingLd {
   title: string;
   description: string;
+  /** hiringOrganization.name, when the page states it. */
+  company: string | null;
 }
 
 function isJobPostingType(value: unknown): boolean {
@@ -140,7 +223,12 @@ function collectJobPostings(node: unknown, out: JobPostingLd[], depth = 0): void
   }
   const record = node as Record<string, unknown>;
   if (isJobPostingType(record['@type']) && typeof record.description === 'string') {
-    out.push({ title: typeof record.title === 'string' ? record.title : '', description: record.description });
+    const organization = record.hiringOrganization;
+    const company = organization && typeof organization === 'object' && !Array.isArray(organization)
+      && typeof (organization as Record<string, unknown>).name === 'string'
+      ? (organization as Record<string, unknown>).name as string
+      : typeof organization === 'string' ? organization : null;
+    out.push({ title: typeof record.title === 'string' ? record.title : '', description: record.description, company });
   }
   if (record['@graph']) collectJobPostings(record['@graph'], out, depth + 1);
 }
@@ -148,10 +236,20 @@ function collectJobPostings(node: unknown, out: JobPostingLd[], depth = 0): void
 /** Every `JobPosting` in the page's `application/ld+json` blocks. A block that does not parse is skipped. */
 export function extractJobPostings(html: string): JobPostingLd[] {
   const postings: JobPostingLd[] = [];
-  const scripts = html.matchAll(/<script\b[^>]*type\s*=\s*["']?application\/ld\+json["']?[^>]*>([\s\S]*?)<\/script>/gi);
-  for (const [, body] of scripts) {
+  const lower = html.toLowerCase();
+  let at = 0;
+  // indexOf from each script's end: an unclosed script ends the read rather than being searched again.
+  for (;;) {
+    const open = lower.indexOf('<script', at);
+    if (open === -1) break;
+    const gt = lower.indexOf('>', open);
+    if (gt === -1) break;
+    const close = lower.indexOf('</script', gt);
+    if (close === -1) break;
+    at = close + 8;
+    if (!lower.slice(open, gt).includes('application/ld+json')) continue;
     try {
-      collectJobPostings(JSON.parse(body.trim()), postings);
+      collectJobPostings(JSON.parse(html.slice(gt + 1, close).trim()), postings);
     } catch {
       // Malformed JSON-LD is common on job boards. The next block may still be good.
     }
@@ -169,35 +267,59 @@ function titleTokens(value: string): Set<string> {
   );
 }
 
-/** Share of our title's words the posting's title has. A page listing other jobs scores low. */
-function titleOverlap(ours: string, theirs: string): number {
-  const mine = titleTokens(ours);
-  if (mine.size === 0) return 0;
-  const other = titleTokens(theirs);
+/** Share of `ours`' words that `theirs` has. */
+function coverage(ours: Set<string>, theirs: Set<string>): number {
+  if (ours.size === 0) return 0;
   let shared = 0;
-  for (const token of mine) if (other.has(token)) shared += 1;
-  return shared / mine.size;
+  for (const token of ours) if (theirs.has(token)) shared += 1;
+  return shared / ours.size;
 }
 
+/** How well a posting's title fits ours: the weaker of the two directions, so a longer title of another job scores low. */
+function titleFit(ours: string, theirs: string): number {
+  const mine = titleTokens(ours);
+  const other = titleTokens(theirs);
+  return Math.min(coverage(mine, other), coverage(other, mine));
+}
+
+function companyTokens(value: string): Set<string> {
+  const generic = new Set(['gmbh', 'ag', 'se', 'kg', 'co', 'inc', 'ltd', 'llc', 'plc', 'bv', 'sa', 'group', 'gruppe', 'the', 'und', 'and']);
+  return new Set([...titleTokens(value)].filter((token) => !generic.has(token)));
+}
+
+/** A stated employer must share a word with ours; no stated employer is not a mismatch. */
+function companyFits(ours: string, theirs: string | null): boolean {
+  if (!theirs) return true;
+  const mine = companyTokens(ours);
+  const other = companyTokens(theirs);
+  if (mine.size === 0 || other.size === 0) return true;
+  for (const token of mine) if (other.has(token)) return true;
+  return false;
+}
+
+/** Longer than this, a "description" is not one ad: the Google copy is kept. */
+const MAX_POSTING_CHARS = 40_000;
+
 /**
- * The ad text from a page's HTML, for the job titled `title`: the `JobPosting` whose title matches best
- * (half our title's words or more), its description converted to text. Null when there is none, or when
- * the converted text is shorter than what we already have.
+ * The ad text from a page's HTML, for the job titled `title` at `company`: the one `JobPosting` that fits.
+ * A posting naming another employer never fits. With one posting on the page, half the title words in
+ * common is enough (boards rename titles); with several, the best must fit well and beat the next, or the
+ * page is a list and nothing is taken. Null when nothing fits, or the converted text is shorter than what we
+ * have or too long to be one ad.
  */
-export function readPostingFromHtml(html: string, title: string, current: string | null): string | null {
-  const postings = extractJobPostings(html);
-  let best: { posting: JobPostingLd; score: number } | null = null;
-  for (const posting of postings) {
-    // A posting without a title is accepted only when it is the page's only one.
-    const score = posting.title ? titleOverlap(title, posting.title) : postings.length === 1 ? 1 : 0;
-    if (!best || score > best.score) best = { posting, score };
-  }
-  if (!best || best.score < 0.5) return null;
+export function readPostingFromHtml(html: string, title: string, company: string, current: string | null): string | null {
+  const postings = extractJobPostings(html).filter((posting) => companyFits(company, posting.company));
+  if (postings.length === 0) return null;
+  const scored = postings
+    .map((posting) => ({ posting, score: posting.title ? titleFit(title, posting.title) : postings.length === 1 ? 1 : 0 }))
+    .sort((a, b) => b.score - a.score);
+  const [best, next] = scored;
+  if (postings.length === 1 ? best.score < 0.5 : best.score < 0.6 || (next && next.score >= best.score)) return null;
 
   // Some boards entity-encode the HTML inside the JSON string (&lt;p&gt;).
   const raw = /&lt;\/?[a-z]/i.test(best.posting.description) ? decodeHtmlEntities(best.posting.description) : best.posting.description;
   const text = htmlToAdText(raw);
-  if (text.length < 200) return null;
+  if (text.length < 200 || text.length > MAX_POSTING_CHARS) return null;
   if (current && text.length < current.trim().length * 0.8) return null;
   return text;
 }
@@ -253,12 +375,15 @@ async function readCapped(response: Response): Promise<string | null> {
 }
 
 /** The page's HTML, following at most three redirects, each one re-checked. Null on any failure. */
-export async function fetchPostingHtml(startUrl: string, fetchImpl: typeof fetch = fetch): Promise<string | null> {
+export async function fetchPostingHtml(startUrl: string, fetchImpl: typeof fetch = fetch, deadline = Number.POSITIVE_INFINITY): Promise<string | null> {
   let url = startUrl;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
     if (!isFetchablePostingUrl(url)) return null;
+    // Each hop gets the usual timeout, cut short by the caller's deadline for the whole pass.
+    const timeout = Math.min(FETCH_TIMEOUT_MS, deadline - Date.now());
+    if (timeout <= 0) return null;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), timeout);
     try {
       const response = await fetchImpl(url, {
         redirect: 'manual',
@@ -310,13 +435,16 @@ export function postingUrlCandidates(urls: Array<string | null | undefined>): st
 export async function readFullPosting(params: {
   urls: string[];
   title: string;
+  company: string;
   current: string | null;
   fetchImpl?: typeof fetch;
+  /** When the whole enrichment pass must end (epoch ms). */
+  deadline?: number;
 }): Promise<{ text: string; url: string } | null> {
   for (const url of params.urls) {
-    const html = await fetchPostingHtml(url, params.fetchImpl);
+    const html = await fetchPostingHtml(url, params.fetchImpl, params.deadline);
     if (!html) continue;
-    const text = readPostingFromHtml(html, params.title, params.current);
+    const text = readPostingFromHtml(html, params.title, params.company, params.current);
     if (text) return { text, url };
   }
   return null;

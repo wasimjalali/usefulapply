@@ -88,8 +88,13 @@ export async function loadFeedOverview(options?: { quiet?: boolean }): Promise<F
     }
     const overview = payload as unknown as JobFeedOverviewResponse;
     const merged = mergeQuietSettings(overview, next);
+    const previousRevision = next.overview?.settings?.revision ?? null;
     next.setOverview(merged);
     next.setStatus('ready');
+    // Settings saved elsewhere (an agent, another tab) can carry a new search list: load it with them, so
+    // the editor never pairs the new settings with the old searches.
+    const revision = merged.settings?.revision ?? null;
+    if (previousRevision !== null && revision !== null && revision > previousRevision) await loadSearchStrategy();
     return { ok: true, data: merged };
   } catch {
     const next = useFeedStore.getState();
@@ -367,7 +372,7 @@ export async function saveFeedSettings(
       // Someone (an agent, another tab) saved newer settings. Load them so the form shows what is saved.
       // This save is over, so the reload must not keep the settings on screen as an in-flight save would.
       useFeedStore.getState().setIsSavingSettings(false);
-      await loadFeedOverview({ quiet: true });
+      await Promise.all([loadFeedOverview({ quiet: true }), loadSearchStrategy()]);
       return {
         ok: false,
         stale: true,
@@ -386,6 +391,8 @@ export async function saveFeedSettings(
 
     if (options?.confirmedQueries && !isStale(generation)) {
       useFeedStore.getState().patchBuild({ strategyDone: true });
+      // The saved list is the strategy now: hold the store to it, as the editor reads its rows from there.
+      await loadSearchStrategy();
     }
 
     if (shouldGenerateStrategyOnSettingsSave()) {

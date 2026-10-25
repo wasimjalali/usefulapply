@@ -96,7 +96,8 @@ test.describe.serial('feed settings: a stale editor and seniority, one revision 
     await page.screenshot({ path: testInfo.outputPath('2-save-after-reload.png'), fullPage: true });
     const afterSave = await agent.ok<SettingsRead>('get_feed_settings');
     expect(afterSave.settings.salaryFloor).toBe(99000);
-    expect(afterSave.revision).toBe(agentSave.revision + 1);
+    // The editor saves its search list too, and claims the revision before writing it: the revision moves by two.
+    expect(afterSave.revision).toBe(agentSave.revision + 2);
     await page.close();
   });
 
@@ -234,6 +235,10 @@ test.describe.serial('feed settings: every field and the search list, the same i
 
     const tooMany = Array.from({ length: saved.searchLimit + 1 }, (_, index) => ({ query: `Role ${index + 1}`, country: 'de' }));
     expect(await agent.fails('update_feed_searches', { revision: saved.revision, searches: tooMany })).toMatch(new RegExp(`more than ${saved.searchLimit} searches`));
+    // An old revision is refused like everywhere else, and the list stays.
+    expect(await agent.fails('update_feed_searches', { revision: saved.revision - 1, searches: [{ query: 'Prompt Engineer', country: 'de' }] })).toMatch(/changed after you read them/);
+    const kept = await agent.ok<{ searchStrategy: { queries: Array<{ query: string }> } }>('get_career_profile');
+    expect(kept.searchStrategy.queries.map((query) => query.query)).toEqual(['Applied AI Engineer', 'KI-Ingenieur', 'AI Automation Engineer']);
   });
 });
 
@@ -267,8 +272,13 @@ test.describe.serial('feed settings: the career profile, dropped roles, feedback
   test('regenerate_career_profile reads the CV again and leaves the settings\' seniority alone; the editor button does the same', async () => {
     const before = await agent.ok<SettingsRead>('get_feed_settings');
     // The stored profile is the seeded one, "senior". The CV on file reads as mid on the scripted model.
-    const regenerated = await agent.ok<{ status: string; profile: { seniority: { level: string } } | null }>('regenerate_career_profile');
+    // Reading the CV again is for Plus and Max.
+    setPlan(user.id, 'free');
+    expect(await agent.fails('regenerate_career_profile')).toBe('Plan upgrade required.');
+    setPlan(user.id, 'max');
+    const regenerated = await agent.ok<{ status: string; regenerated: boolean; profile: { seniority: { level: string } } | null }>('regenerate_career_profile');
     expect(regenerated.status).toBe('ok');
+    expect(regenerated.regenerated).toBe(true);
     expect(regenerated.profile?.seniority.level).toBe('mid');
     const career = await agent.ok<{ status: string; cvNewerThanProfile: boolean; profile: { seniority: { level: string } } }>('get_career_profile');
     expect(career).toMatchObject({ status: 'ok', cvNewerThanProfile: false, profile: { seniority: { level: 'mid' } } });
@@ -284,7 +294,9 @@ test.describe.serial('feed settings: the career profile, dropped roles, feedback
     await reread.click();
     const response = await posted;
     expect(response.status()).toBe(200);
-    expect(await response.json()).toMatchObject({ status: 'ok', regenerated: true });
+    // The profile was read seconds ago by the tool, so the button gets it back as it is: one forced re-read per
+    // profile every 5 minutes, whoever asks.
+    expect(await response.json()).toMatchObject({ status: 'ok', regenerated: false });
     await expect(reread).toBeEnabled();
     // (Next.js keeps an empty route announcer with the alert role on every page, so look for the button's own error.)
     await expect(page.getByText(/could not read your CV|need your CV first/)).toHaveCount(0);

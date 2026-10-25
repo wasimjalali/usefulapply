@@ -314,19 +314,19 @@ const updateFeedSettings = defineTool({
     salaryFloor: z.number().int().min(0).max(10_000_000).nullable().optional()
       .describe('Minimum salary as a whole number in the local currency. null removes the floor.'),
     automationEnabled: z.boolean().optional()
-      .describe('Whether the feed is switched on. It never runs by itself: when on, the user in the web app or run_job_feed starts at most one completed run a day. Turning it on needs consent already on file.'),
+      .describe('Whether the feed is switched on. It never runs by itself: when on, the user in the web app or run_job_feed starts runs, as many completed runs a day as the plan allows. Turning it on needs consent already on file.'),
     timezone: z.string().trim().min(1).max(80).optional()
-      .describe('IANA timezone name, for example Europe/Berlin. The one run a day follows this timezone.'),
+      .describe('IANA timezone name, for example Europe/Berlin. The day the plan\'s runs a day count in follows this timezone.'),
     seniority: z.array(z.enum(SENIORITY)).max(SENIORITY.length).optional()
       .describe(`Levels to keep: ${SENIORITY.join(', ')}. A job whose ad is only for other levels is left out of the feed; an ad that does not say is kept. An empty list keeps every level.`),
     excludedTerms: z.array(z.string().trim().min(1).max(80)).max(20).optional()
       .describe('Words to avoid: titles, companies or keywords the user never wants to see, for example "Sales" or a staffing agency. Up to 20. An empty list clears them.'),
     cities: z.array(z.string().trim().min(1).max(80)).max(20).optional()
       .describe('Cities to search in, for example Berlin. A city named for the first time adds its country to the countries. Up to 20. An empty list clears them.'),
-    languages: z.array(z.string().trim().min(1).max(40)).min(1).max(10).optional()
+    languages: z.array(z.string().trim().min(1).max(40)).min(1).max(8).optional()
       .describe('Languages the user works in, as names, for example English, German. The ranking keeps ads written in or asking for these.'),
-    workAuthorization: z.enum(['authorized', 'needs_sponsorship', 'open_to_both']).nullable().optional()
-      .describe('authorized: may work in the target countries. needs_sponsorship: needs a visa sponsor; ads that rule sponsorship out are left out. open_to_both. null clears it.'),
+    workAuthorization: z.enum(['authorized', 'needs_sponsorship', 'open_to_both']).optional()
+      .describe('authorized: may work in the target countries. needs_sponsorship: needs a visa sponsor; ads that rule sponsorship out are left out. open_to_both (the default): sponsorship plays no part.'),
   }),
   output: z.object({
     changed: z.array(z.string()),
@@ -394,7 +394,7 @@ function toPatch(args: {
   excludedTerms?: string[];
   cities?: string[];
   languages?: string[];
-  workAuthorization?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null;
+  workAuthorization?: 'authorized' | 'needs_sponsorship' | 'open_to_both';
 }): FeedSettingsPatch {
   const patch: FeedSettingsPatch = {};
   if (args.roles !== undefined) patch.roles = args.roles;
@@ -526,11 +526,13 @@ const regenerateCareerProfile = defineTool({
   name: 'regenerate_career_profile',
   title: 'Regenerate career profile',
   description:
-    "Reads the user's primary CV again and replaces the career profile the job feed derives from it (titles, seniority estimate, years, skills). Costs no credits. The feed settings stay as saved: the seniority estimate never overrides the levels in the settings, which update_feed_settings changes.",
+    "Reads the user's primary CV again and replaces the career profile the job feed derives from it (titles, seniority estimate, years, skills). Costs no credits. A profile read in the last 5 minutes is returned as it is (regenerated false). The feed settings stay as saved: the seniority estimate never overrides the levels in the settings, which update_feed_settings changes.",
   hints: { readOnly: false, destructive: false, idempotent: false, openWorld: false },
   input: z.object({}),
   output: z.object({
     status: z.enum(['ok', 'no_cv']),
+    /** False when the stored profile was read in the last 5 minutes and is returned as it is. */
+    regenerated: z.boolean(),
     generatedAt: z.string().nullable(),
     profile: careerProfileSchema.nullable(),
   }),
@@ -540,9 +542,9 @@ const regenerateCareerProfile = defineTool({
       await withinRateLimit(`career-profile-generate:${userId}`, RATE_LIMITS['career-profile-generate']);
       const result = await generateCareerProfileForUser({ userId, force: true, clientRequestId: null, route: 'mcp:regenerate_career_profile' });
       if (result.status === 'no_cv' || !result.profile) {
-        return ok({ status: 'no_cv' as const, generatedAt: null, profile: null });
+        return ok({ status: 'no_cv' as const, regenerated: false, generatedAt: null, profile: null });
       }
-      return ok({ status: 'ok' as const, generatedAt: result.generatedAt, profile: toCareerProfileView(result.profile) });
+      return ok({ status: 'ok' as const, regenerated: result.regenerated, generatedAt: result.generatedAt, profile: toCareerProfileView(result.profile) });
     });
   },
 });
@@ -621,6 +623,8 @@ const runJobFeed = defineTool({
     runsPerDay: z.number(),
     /** Which run of the day this is, from 0. */
     runSlot: z.number().nullable(),
+    /** Set when queries were sent but not used: a run was already queued or running, or none was allowed. */
+    warning: z.string().nullable(),
   }),
   async run({ queries }, { userId }) {
     return feedCall(async () => {
@@ -650,6 +654,11 @@ const runJobFeed = defineTool({
         runsLeftToday: result.runsLeftToday,
         runsPerDay: result.runsPerDay,
         runSlot: result.runSlot,
+        warning: queries && !result.started
+          ? (result.alreadyRanToday
+            ? 'No run was started, so the queries sent were not searched: today\'s runs are used up.'
+            : 'A run was already in progress, so the queries sent were not searched. Send them again once it has ended.')
+          : null,
       });
     });
   },

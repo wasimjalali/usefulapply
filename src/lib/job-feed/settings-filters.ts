@@ -87,23 +87,42 @@ export interface TrackerApplication {
   job_title: string | null;
 }
 
+/** A company as one key: accents folded to their letters (Müller is muller, never m ller), legal suffixes off. */
+function normalizeTrackerCompany(value: string | null | undefined): string {
+  return normalizeCompanyForDedupe((value ?? '').normalize('NFKD').replace(/\p{M}/gu, ''));
+}
+
+export interface TrackerIndex {
+  /** Full titles of the applications. */
+  full: Map<string, Set<string>>;
+  /** Full titles and their parts before a tagline. */
+  any: Map<string, Set<string>>;
+}
+
+function add(map: Map<string, Set<string>>, key: string, id: string): void {
+  const ids = map.get(key) ?? new Set<string>();
+  ids.add(id);
+  map.set(key, ids);
+}
+
 /**
  * Keys of the applications a user already has, for matching feed jobs by company and title. A job matches
- * when the company is the same (legal suffixes ignored) and either the whole title or its part before a
- * tagline is the same.
+ * when the company is the same (legal suffixes ignored) and its title equals an application's title or the
+ * part of it before a tagline, or the job's part before a tagline equals an application's whole title. Two
+ * taglines are never compared head to head: "Engineer - Backend" and "Engineer - Frontend" are two jobs.
  */
-export function buildTrackerIndex(applications: readonly TrackerApplication[]): Map<string, Set<string>> {
-  const index = new Map<string, Set<string>>();
+export function buildTrackerIndex(applications: readonly TrackerApplication[]): TrackerIndex {
+  const index: TrackerIndex = { full: new Map(), any: new Map() };
   for (const application of applications) {
-    const company = normalizeCompanyForDedupe(application.company);
+    const company = normalizeTrackerCompany(application.company);
     if (!company) continue;
-    for (const title of new Set([normalizeTrackerTitle(application.job_title), titleHead(application.job_title)])) {
-      if (!title) continue;
-      const key = `${company}|${title}`;
-      const ids = index.get(key) ?? new Set<string>();
-      ids.add(application.id);
-      index.set(key, ids);
+    const full = normalizeTrackerTitle(application.job_title);
+    if (full) {
+      add(index.full, `${company}|${full}`, application.id);
+      add(index.any, `${company}|${full}`, application.id);
     }
+    const head = titleHead(application.job_title);
+    if (head) add(index.any, `${company}|${head}`, application.id);
   }
   return index;
 }
@@ -114,14 +133,14 @@ export function buildTrackerIndex(applications: readonly TrackerApplication[]): 
  */
 export function inTracker(
   job: { company: string; title: string },
-  index: Map<string, Set<string>>,
+  index: TrackerIndex,
   ownApplicationId: string | null = null,
 ): boolean {
-  const company = normalizeCompanyForDedupe(job.company);
+  const company = normalizeTrackerCompany(job.company);
   if (!company) return false;
-  for (const title of new Set([normalizeTrackerTitle(job.title), titleHead(job.title)])) {
-    const ids = title ? index.get(`${company}|${title}`) : undefined;
-    if (ids && [...ids].some((id) => id !== ownApplicationId)) return true;
-  }
-  return false;
+  const other = (ids: Set<string> | undefined) => Boolean(ids && [...ids].some((id) => id !== ownApplicationId));
+  const full = normalizeTrackerTitle(job.title);
+  const head = titleHead(job.title);
+  return (full !== '' && other(index.any.get(`${company}|${full}`)))
+    || (head !== '' && other(index.full.get(`${company}|${head}`)));
 }

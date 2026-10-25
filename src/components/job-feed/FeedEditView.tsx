@@ -116,6 +116,9 @@ export function FeedEditView({
   const [rereadError, setRereadError] = useState('');
   /** Set by a stale save: take in the newer settings even over unsaved edits. */
   const [reloadDraft, setReloadDraft] = useState(false);
+  /** The search list the draft was made from: a newer one (saved by an agent) replaces a clean form too. */
+  const strategyVersion = strategy?.generatedAt ?? null;
+  const [draftStrategyVersion, setDraftStrategyVersion] = useState(strategyVersion);
 
   // Employment types and levels are sets: the same values in another order are no change.
   const sortedTypes = (value: PreferenceDraft) => ({
@@ -128,17 +131,22 @@ export function FeedEditView({
 
   // Newer saved settings replace a clean form. Unsaved edits are never replaced quietly: their save is
   // refused as stale, and only then does the form take the newer settings in.
+  const newerSettings = isNewerSettingsVersion(settingsVersion, draftVersion);
   if (
-    isNewerSettingsVersion(settingsVersion, draftVersion)
+    (newerSettings || strategyVersion !== draftStrategyVersion)
     && (!dirty || reloadDraft)
     && saveState !== 'saving'
     && saveState !== 'error'
   ) {
     setDraft(nextDraft);
     setSavedDraft(nextDraft);
-    setSaveState('idle');
-    setSaveError('');
+    // Only settings saved elsewhere clear "Saved.": the list reloading after this form's own save does not.
+    if (newerSettings) {
+      setSaveState('idle');
+      setSaveError('');
+    }
     setDraftVersion(settingsVersion);
+    setDraftStrategyVersion(strategyVersion);
     setReloadDraft(false);
   }
 
@@ -165,6 +173,8 @@ export function FeedEditView({
     setSaveState('idle');
     setSaveError('');
     setStaleNotice('');
+    // An edit after a stale save keeps the user's own changes: the next save is checked again.
+    setReloadDraft(false);
   };
 
   const savePreferences = async () => {

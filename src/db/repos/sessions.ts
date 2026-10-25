@@ -526,7 +526,6 @@ export interface TrackerApplicationRow {
   created_at: string;
 }
 
-/** Enough for any real job hunt, and it bounds the tracker chat prompt. */
 /**
  * Company and title of every application a user has, drafts included, for keeping jobs already in the
  * tracker out of the job feed. Newest first, capped well above any real tracker.
@@ -541,6 +540,7 @@ export async function listApplicationIdentities(userId: string): Promise<Array<{
     .limit(2000);
 }
 
+/** Enough for any real job hunt, and it bounds the tracker chat prompt. */
 export const TRACKER_OVERVIEW_LIMIT = 300;
 
 /**

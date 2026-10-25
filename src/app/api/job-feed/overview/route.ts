@@ -15,7 +15,7 @@ import { isCurrentCareerProfile, type CareerProfile } from '@/lib/job-feed/caree
 import type { JobFeedRun } from '@/db/types';
 import { getProfile } from '@/db/repos/profiles';
 import { getDocumentByType } from '@/db/repos/documents';
-import { getCareerProfileRow, getLatestRun, getSettings } from '@/db/repos/jobFeed';
+import { getCareerProfileRow, getLatestRun, getSettings, listRunsByDate } from '@/db/repos/jobFeed';
 
 export const runtime = 'nodejs';
 
@@ -131,9 +131,10 @@ export async function GET(request: NextRequest) {
       new Date(),
       settings?.user_timezone || latestRun?.local_timezone || 'UTC',
     );
-    const rankedToday = latestRun?.local_date === todayKey
-      ? latestRun.ranked_jobs_count
-      : 0;
+    // Every completed run of today: a plan with more runs a day has several.
+    const rankedToday = (await listRunsByDate(user.id, todayKey))
+      .filter((run) => run.status === 'completed')
+      .reduce((sum, run) => sum + (run.ranked_jobs_count ?? 0), 0);
     const jobsMatchedCount = Math.max(
       0,
       typeof rankedToday === 'number' && Number.isFinite(rankedToday)

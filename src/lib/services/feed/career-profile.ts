@@ -188,6 +188,9 @@ export async function readSearchStrategy(userId: string): Promise<SearchStrategy
   };
 }
 
+/** How old a stored profile must be before a forced re-read replaces it. */
+const FORCED_REREAD_MIN_AGE_MS = 5 * 60 * 1000;
+
 /**
  * Read the primary CV into a career profile and store it: the body of POST /api/job-feed/career-profile,
  * shared with the MCP `regenerate_career_profile` tool. Without `force`, a stored profile that is current
@@ -207,21 +210,24 @@ export async function generateCareerProfileForUser(params: {
     return { profile: null, cvNewerThanProfile: false, status: 'no_cv', generatedAt: null, regenerated: false };
   }
 
-  if (
-    !params.force
-    && profileRow?.profile
+  const current = profileRow?.profile
     && isCurrentCareerProfile(profileRow.profile)
-    && profileRow.version === CAREER_PROFILE_SCHEMA_VERSION
-    && !isCVNewerThanProfile({
-      profileSourceUpdatedAt: profileRow.source_document_updated_at,
+    && profileRow.version === CAREER_PROFILE_SCHEMA_VERSION;
+  // A forced re-read is a model call with no credit cost, so one profile is read again at most every few
+  // minutes whatever the caller sends.
+  const justRead = current && Date.now() - Date.parse(profileRow!.profile!.generatedAt) < FORCED_REREAD_MIN_AGE_MS;
+  if (
+    current
+    && (justRead || (!params.force && !isCVNewerThanProfile({
+      profileSourceUpdatedAt: profileRow!.source_document_updated_at,
       primaryDocUpdatedAt: primaryDoc.updated_at,
-    })
+    })))
   ) {
     return {
-      profile: profileRow.profile,
+      profile: profileRow!.profile,
       cvNewerThanProfile: false,
       status: 'ok',
-      generatedAt: profileRow.profile.generatedAt,
+      generatedAt: profileRow!.profile!.generatedAt,
       regenerated: false,
     };
   }

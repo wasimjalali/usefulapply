@@ -8,7 +8,7 @@
  */
 
 import { getProfile } from '@/db/repos/profiles';
-import { getSettings, upsertSettings, upsertJobPreferences, withdrawConsent } from '@/db/repos/jobFeed';
+import { getSettings, reserveSettingsRevision, upsertSettings, upsertJobPreferences, withdrawConsent } from '@/db/repos/jobFeed';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import {
   countriesImpliedByNewCities,
@@ -121,6 +121,11 @@ async function persistFeedSettings(params: {
   /** The revision the caller read. Refused when the row has moved on (-1 never matches an existing row). */
   expectedRevision: number;
   staleMessage: string;
+  /**
+   * Fields the caller set on purpose. On a first save (no row yet) seniority and languages come from the
+   * career profile unless set here: the first-run wizard sends the defaults, which are no one's choice.
+   */
+  userSet?: { seniority?: boolean; languages?: boolean };
 }): Promise<{ settings: JobFeedSettings }> {
   const { userId, subscriptionTier, body } = params;
   const normalized = normalizeJobFeedSettingsInput(body);
@@ -201,20 +206,23 @@ async function persistFeedSettings(params: {
 
   const userSkills = profileMirror?.userSkills ?? existingSettings?.user_skills ?? [];
 
-  // Seniority and languages are the user's to set (the editor, update_feed_settings). The career profile only
-  // fills them in on a first save that sends none. They used to be replaced by the profile's estimate on every
-  // save, which pinned a wrong "senior" with no way to change it.
+  // Seniority and languages are the user's to set (the editor, update_feed_settings). They used to be replaced
+  // by the profile's estimate on every save, which pinned a wrong "senior" with no way to change it. Now the
+  // profile fills them only on a first save, unless that save set them on purpose.
   const sent = body as Record<string, unknown>;
-  const languages = Array.isArray(sent.languages)
-    ? normalized.data.languages
-    : existingSettings?.languages?.length
-      ? existingSettings.languages
-      : profileMirror?.languages ?? ['English'];
-  const seniorityTargets: JobFeedSettingsInput['seniority_targets'] = Array.isArray(sent.seniority_targets)
-    ? normalized.data.seniority_targets
-    : existingSettings
-      ? (existingSettings.seniority_targets as JobFeedSettingsInput['seniority_targets'])
-      : profileMirror?.seniorityTargets ?? [];
+  const fromProfile = (field: 'seniority' | 'languages') => !existingSettings && !params.userSet?.[field] && profileMirror !== null;
+  const languages = fromProfile('languages')
+    ? profileMirror!.languages
+    : Array.isArray(sent.languages)
+      ? normalized.data.languages
+      : existingSettings?.languages?.length
+        ? existingSettings.languages
+        : ['English'];
+  const seniorityTargets: JobFeedSettingsInput['seniority_targets'] = fromProfile('seniority')
+    ? profileMirror!.seniorityTargets
+    : Array.isArray(sent.seniority_targets)
+      ? normalized.data.seniority_targets
+      : (existingSettings?.seniority_targets ?? []) as JobFeedSettingsInput['seniority_targets'];
   const seniorityTarget = seniorityTargets[0] ?? null;
 
   // Employment types is a setting of its own in the editor and the MCP tool. A body that leaves the key out
@@ -253,8 +261,19 @@ async function persistFeedSettings(params: {
 
   // Persist the confirmed list before enabling the feed. If this fails we
   // must not turn the feed on, or a later run would silently generate a
-  // new strategy over the user's picks.
+  // new strategy over the user's picks. The list is a write of its own, so the
+  // revision is claimed first: a save that lost the race stops here, before it
+  // can replace the winner's searches.
+  let expectedRevision = existingSettings ? params.expectedRevision : 0;
   if (confirmed?.ok) {
+    if (existingSettings) {
+      try {
+        expectedRevision = await reserveSettingsRevision(userId, expectedRevision);
+      } catch (error) {
+        if (error instanceof RevisionConflict) throw staleSettings(params.staleMessage, error.currentRevision);
+        throw error;
+      }
+    }
     try {
       await persistUserConfirmedStrategyAdmin({
         userId,
@@ -276,7 +295,7 @@ async function persistFeedSettings(params: {
 
   let data;
   try {
-    data = await upsertSettings(userId, nextSettings, { expectedRevision: existingSettings ? params.expectedRevision : 0 });
+    data = await upsertSettings(userId, nextSettings, { expectedRevision });
   } catch (error) {
     if (error instanceof RevisionConflict) throw staleSettings(params.staleMessage, error.currentRevision);
     console.error('[job-feed/settings] PUT error:', error instanceof Error ? error.message : error);
@@ -513,6 +532,7 @@ export async function updateFeedSettingsPartial(params: {
     clientRequestId: params.clientRequestId,
     llmRoute: 'mcp:update_feed_settings',
     expectedRevision: params.expectedRevision,
+    userSet: { seniority: patch.seniority !== undefined, languages: patch.languages !== undefined },
     staleMessage: 'The feed settings changed after you read them. Read them again with get_feed_settings and send the new revision.',
   });
   return { settings, searches, searchLimit };

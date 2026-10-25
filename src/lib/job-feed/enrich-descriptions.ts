@@ -3,7 +3,7 @@
  *
  * Runs after the prefilter, so only jobs that can still reach the feed are fetched. A job whose text
  * already came from its own page is skipped, so a job seen again on a later day costs nothing. The ranker
- * then reads the whole ad, and the inbox, the web app and the MCP all show the stored text.
+ * then reads an excerpt of the ad's own text, and the inbox, the web app and the MCP show all of it.
  */
 
 import type { JobFeedCanonicalJob } from '@/db/types';
@@ -11,7 +11,7 @@ import { needsPostingPage, postingUrlCandidates, readFullPosting } from '@/lib/j
 
 const CONCURRENCY = 6;
 const MAX_JOBS_PER_RUN = 40;
-/** The whole pass never holds a run longer than this; jobs not reached keep their Google copy. */
+/** The whole pass never holds a run longer than this (every fetch is cut to it); jobs not reached keep their Google copy. */
 const PASS_DEADLINE_MS = 45_000;
 
 function applyOptionLinks(job: JobFeedCanonicalJob): string[] {
@@ -55,7 +55,7 @@ export async function enrichJobDescriptions(params: {
       next += 1;
       const urls = postingUrlCandidates([...applyOptionLinks(job), job.apply_url, job.source_url]);
       if (urls.length === 0) continue;
-      const posting = await readFullPosting({ urls, title: job.title, current: job.description, fetchImpl: params.fetchImpl });
+      const posting = await readFullPosting({ urls, title: job.title, company: job.company, current: job.description, fetchImpl: params.fetchImpl, deadline });
       if (!posting) continue;
       result[index] = await params.updateJob(job.id, {
         description: posting.text,

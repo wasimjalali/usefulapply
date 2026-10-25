@@ -8,7 +8,8 @@
 -- Date: 2026-10-25
 -- Rollback: ALTER TABLE job_feed_canonical_jobs DROP COLUMN description_complete; then the same for
 --   description_source. The descriptions themselves stay.
--- Blast radius: low. Two new nullable columns with no rewrite of existing rows; apply BEFORE deploying the code that
+-- Blast radius: low. Two new columns (description_source NOT NULL with a constant default, description_complete
+--   nullable), no rewrite of existing rows; apply BEFORE deploying the code that
 --   writes them.
 
 ALTER TABLE `job_feed_canonical_jobs` ADD `description_source` text DEFAULT 'serp' NOT NULL;

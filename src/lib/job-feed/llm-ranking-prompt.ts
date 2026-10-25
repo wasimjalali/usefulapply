@@ -63,7 +63,7 @@ Apply these weights when forming your decision. The weights reflect what actuall
 # Decision calibration (industry-aligned, not "vibes-based")
 Anchor your decisions to this scale. Be fair and realistic, neither overly generous nor artificially harsh.
 
-- **strong**: Highly competitive match. The candidate meets ~80%+ of required skills, the role is a direct or clearly-adjacent fit to their targetRoles, location/remote constraints are met, seniority is within ±1 of target, and there are no disqualifying red flags in the description. This is a job the candidate should apply to today with high confidence.
+- **strong**: Highly competitive match. The candidate meets ~80%+ of required skills, the role is a direct or clearly-adjacent fit to their targetRoles, location/remote constraints are met, the role is open to a level in seniorityTargets, and there are no disqualifying red flags in the description. This is a job the candidate should apply to today with high confidence.
 - **good**: Genuinely competitive with minor gaps. 60-80% skill match, acceptable role fit, no hard-constraint violations. Worth surfacing but not a standout. This is "solid but not perfect" — worth a click, worth reviewing, worth applying if they have time.
 - **skip**: Any of the following: skill gap too large (<60% on must-haves), seniority is clearly wrong, location/remote is fundamentally incompatible, posting is too stale, or the role is in a different domain entirely. Not worth a feed slot.
 
