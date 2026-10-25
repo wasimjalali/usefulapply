@@ -30,9 +30,9 @@ export function planCapForTier(subscriptionTier: string | null | undefined): num
   return getJobFeedTierLimits(subscriptionTier ?? 'plus').maxMainQueries;
 }
 
-/** How many searches the confirmed list may hold: a run's searches times the plan's runs a day. */
-export function searchListCap(subscriptionTier: string | null | undefined): number {
-  return searchListCapForTier(subscriptionTier ?? 'plus');
+/** How many searches the confirmed list may hold: a run's searches times the runs a day. */
+export function searchListCap(subscriptionTier: string | null | undefined, runsPerDayOverride: number | null = null): number {
+  return searchListCapForTier(subscriptionTier ?? 'plus', runsPerDayOverride);
 }
 
 /** Career-profile titles in stored order. Over-cap callers take the first N. */

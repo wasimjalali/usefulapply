@@ -166,12 +166,12 @@ export function getJobFeedInputCaps(subscriptionTier: string | null | undefined)
 }
 
 /**
- * How long the confirmed search list may be: one run's searches times the runs a day, so every run of the
- * day can search its own slice.
+ * How long the confirmed search list may be: one run's searches times the runs a day (the account's own
+ * override when it has one), so every run of the day can search its own slice.
  */
-export function searchListCapForTier(subscriptionTier: string): number {
+export function searchListCapForTier(subscriptionTier: string, runsPerDayOverride: number | null = null): number {
   const limits = getJobFeedTierLimits(subscriptionTier);
-  return limits.maxMainQueries * limits.runsPerDay;
+  return limits.maxMainQueries * (runsPerDayOverride ?? limits.runsPerDay);
 }
 
 export function getJobFeedTierLimits(subscriptionTier: string): JobFeedTierLimits {

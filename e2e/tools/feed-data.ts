@@ -649,19 +649,33 @@ async function main(): Promise<void> {
   await scenario('r4. an account set to four runs a day gets a fourth on the same day, and no fifth', async () => {
     const overrideUser = await seedMaxUser('override');
     await run('UPDATE profiles SET job_feed_runs_per_day = 4 WHERE id = ?', overrideUser);
-    const slots: number[] = [];
+    // A list of 32 searches is accepted: room for a slice of 8 for each of the four runs.
+    const overrideRow = await one('SELECT revision FROM job_feed_settings WHERE user_id = ?', overrideUser);
+    const longList = Array.from({ length: 32 }, (_, i) => ({ query: `Override ${String(i + 1).padStart(2, '0')}`, country: 'de' }));
+    const saved = await updateFeedSettingsPartial({ userId: overrideUser, patch: { searches: longList }, clientRequestId: null, expectedRevision: Number(overrideRow.revision) });
+    assert.equal(saved.searchLimit, 32);
+    const plans: Array<{ slot: number; status: string; queries: string[] }> = [];
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const queued = await queueFeedRun(overrideUser, { customQueries: null });
       assert.ok(queued.started && queued.runId, `run ${attempt + 1} starts (got ${JSON.stringify(queued)})`);
       assert.equal(queued.runsPerDay, 4);
       await feedServer.runJobFeedFoundationWorkflow({ userId: overrideUser, runId: queued.runId, orchestrator: 'queue' });
-      slots.push(queued.runSlot ?? -1);
+      plans.push(await planOf(queued.runId));
     }
-    assert.deepEqual(slots, [0, 1, 2, 3]);
+    assert.deepEqual(plans.map((plan) => [plan.slot, plan.status]), [[0, 'completed'], [1, 'completed'], [2, 'completed'], [3, 'completed']]);
+    // The fourth run searches the list's last slice, not the first one again.
+    assert.deepEqual(plans[3].queries, longList.slice(24, 32).map((row) => row.query));
+    assert.equal(new Set(plans.flatMap((plan) => plan.queries)).size, 32, 'every search once across the day');
+    const searchesBefore = serp.calls;
     const fifth = await queueFeedRun(overrideUser, { customQueries: null });
     assert.equal(fifth.started, false, 'no fifth run');
     assert.equal(fifth.runsLeftToday, 0);
-    return { slots };
+    assert.equal(serp.calls, searchesBefore, 'the fifth call searched nothing');
+    const runs = await one('SELECT COUNT(*) AS n FROM job_feed_runs WHERE user_id = ?', overrideUser);
+    assert.equal(Number(runs.n), 4, 'and wrote no run');
+    const { readRunsLeftToday } = await import('../../src/lib/services/feed/run');
+    assert.deepEqual(await readRunsLeftToday(overrideUser), { runsLeftToday: 0, runsPerDay: 4 });
+    return { slots: plans.map((plan) => plan.slot), fourth: plans[3].queries };
   });
 
   await scenario('e5. an inbox the settings and the tracker empty stays empty: no fallback to the unfiltered run', async () => {

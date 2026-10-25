@@ -572,7 +572,7 @@ const runFeed: ChatTool = {
       };
     }
 
-    // The run gate the run route and run_job_feed use (the plan's runs a day). Checked here only so the
+    // The run gate the run route and run_job_feed use (the runs a day of the plan or the account's own override). Checked here only so the
     // reply can say why nothing is starting; the route is the authority.
     const allowance = await readRunsLeftToday(ctx.userId);
     if (allowance.runsLeftToday === 0) {

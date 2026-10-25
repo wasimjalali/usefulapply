@@ -57,7 +57,7 @@ export async function loadFeedSettings(userId: string): Promise<FeedSettingsView
   return {
     settings,
     canEdit: ['plus', 'max'].includes(profile.subscription_tier),
-    searchLimit: searchListCap(profile.subscription_tier),
+    searchLimit: searchListCap(profile.subscription_tier, profile.job_feed_runs_per_day),
   };
 }
 
@@ -95,6 +95,7 @@ export async function saveFeedSettings(params: {
   return persistFeedSettings({
     userId,
     subscriptionTier: profile.subscription_tier,
+    runsPerDayOverride: profile.job_feed_runs_per_day,
     body,
     clientRequestId: params.clientRequestId,
     llmRoute: params.llmRoute,
@@ -134,6 +135,8 @@ function staleSettings(message: string, currentRevision: number | null): FeedErr
 async function persistFeedSettings(params: {
   userId: string;
   subscriptionTier: string;
+  /** The account's own runs a day (profiles.job_feed_runs_per_day), which sizes the search list. */
+  runsPerDayOverride: number | null;
   body: unknown;
   clientRequestId: string | null;
   llmRoute: string;
@@ -146,7 +149,7 @@ async function persistFeedSettings(params: {
    */
   userSet?: { seniority?: boolean; languages?: boolean };
 }): Promise<{ settings: JobFeedSettings }> {
-  const { userId, subscriptionTier, body } = params;
+  const { userId, subscriptionTier, runsPerDayOverride, body } = params;
   const normalized = normalizeJobFeedSettingsInput(body);
 
   // A list that is sent and empty is a request for no employment type at all, which the table refuses and the feed
@@ -201,7 +204,7 @@ async function persistFeedSettings(params: {
     operation: 'career_profile_synthesis',
   });
 
-  const cap = searchListCap(subscriptionTier);
+  const cap = searchListCap(subscriptionTier, runsPerDayOverride);
   const confirmed = 'confirmed_queries' in (body as object)
     ? validateConfirmedQueries((body as { confirmed_queries?: unknown }).confirmed_queries, cap)
     : null;
@@ -509,7 +512,7 @@ export async function updateFeedSettingsPartial(params: {
   if (patch.languages) body.languages = patch.languages;
   if (patch.workAuthorization !== undefined) body.work_authorization_status = patch.workAuthorization;
 
-  const searchLimit = searchListCap(profile.subscription_tier);
+  const searchLimit = searchListCap(profile.subscription_tier, profile.job_feed_runs_per_day);
   let searches: ConfirmedSearchQuery[] | null = null;
   const rolesChanged = rolesWouldChange(existing, patch, searchLimit);
   const countriesChanged = Boolean(patch.countries) && !sameSet(patch.countries ?? [], base.target_countries);
@@ -534,6 +537,7 @@ export async function updateFeedSettingsPartial(params: {
   const { settings } = await persistFeedSettings({
     userId,
     subscriptionTier: profile.subscription_tier,
+    runsPerDayOverride: profile.job_feed_runs_per_day,
     body,
     clientRequestId: params.clientRequestId,
     llmRoute: 'mcp:update_feed_settings',
