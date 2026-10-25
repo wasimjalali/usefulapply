@@ -167,6 +167,35 @@ function serpJobs() {
   ];
 }
 
+/** An ad of about 1,200 characters with line breaks (nothing to fetch), saying `mode` in its own words. */
+function filterAd(company: string, mode: string): string {
+  const filler = `${company} builds agent workflows on Claude for insurers and banks, with an evaluation suite for every workflow.`;
+  return [`About ${company}`, filler, mode, 'Requirements', 'TypeScript, Python and production systems.', ...Array.from({ length: 8 }, () => filler)].join('\n');
+}
+
+/** The second user's run: one job per setting it must honour. */
+function filterJobs() {
+  const base = { location: 'München', via: 'Stub Board', detected_extensions: { posted_at: '1 day ago', schedule_type: 'Full-time' } };
+  const job = (id: string, title: string, company: string, mode: string) => ({
+    ...base,
+    job_id: id,
+    title,
+    company_name: company,
+    share_link: `https://www.google.de/search?ibp=htl;jobs&q=AI&htidocid=${id}`,
+    description: filterAd(company, mode),
+    apply_options: [{ title: company, link: `https://jobs.${id}.de/apply` }],
+  });
+  return [
+    job('f-onsite', 'KI-Ingenieur', 'Werk GmbH', 'Die Arbeit findet zu 100% vor Ort in München statt.'),
+    job('f-hybrid', 'AI Engineer', 'Hybrid AG', 'Hybrid: two office days a week in München.'),
+    job('f-senior', 'Senior AI Engineer', 'Elder Labs', 'Hybrid, with flexible office days.'),
+    job('f-junior', 'Junior AI Engineer', 'Fresh GmbH', 'Hybrid setup with a learning budget.'),
+    job('f-dexter', 'Applied AI Engineer (m/w/d)', 'dexter health GmbH', 'Hybrid in Berlin.'),
+    job('f-remote', 'AI Automation Engineer', 'Remote Co', 'This role is fully remote within Germany.'),
+    job('f-unknown', 'AI Specialist', 'Quiet KG', 'We build tools for the Mittelstand.'),
+  ];
+}
+
 const PAGES: Record<string, () => Response> = {
   'https://jobs.compound-law.de/applied-ai-engineer': () => html(jsonLdPage({
     '@type': 'JobPosting',
@@ -190,6 +219,8 @@ function html(body: string): Response {
 // ---------------------------------------------------------------------------
 
 const serp = { calls: 0 };
+/** What the next searches return, one list per search; a search past the end returns nothing. */
+let serpQueue: unknown[][] = [];
 const pageRequests: string[] = [];
 const strayRequests: string[] = [];
 const realFetch = globalThis.fetch;
@@ -199,8 +230,8 @@ globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters
   const host = new URL(url).hostname;
   if (host === 'serpapi.com') {
     serp.calls += 1;
-    // The first search returns every ad; later searches of the run return nothing new.
-    const jobs = serp.calls === 1 ? serpJobs() : [];
+    // A run's first search returns its ads; the run's other searches return nothing new.
+    const jobs = serpQueue.shift() ?? [];
     return new Response(JSON.stringify({ jobs_results: jobs }), { status: 200, headers: { 'content-type': 'application/json' } });
   }
   if (host === '127.0.0.1' || host === 'localhost') return realFetch(input, init);
@@ -321,6 +352,7 @@ async function main(): Promise<void> {
   };
 
   const userId = await seedMaxUser('data');
+  serpQueue = [serpJobs()];
   const result = await feedServer.runJobFeedFoundationWorkflow({ userId, orchestrator: 'direct' });
   assert.equal(result.run.status, 'completed', `the run completed: ${result.run.error_message ?? ''}`);
   const feed = await readWholeFeed(userId);
@@ -411,6 +443,81 @@ async function main(): Promise<void> {
     const item = byCompany(feed.items, 'Hays');
     assert.ok(unwrap(item.description).split('\n').includes('- Kenntnisse in DevOps-Praktiken sowie CI/CD-Pipelines'));
     return { compound: compound.slice(0, 8), hays: haysLines.slice(0, 6), glue: glueLines };
+  });
+
+  // A second user: onsite left out of the work modes, junior and mid chosen, and dexter health's Applied AI
+  // Engineer already in the tracker from an application made outside the feed.
+  const filterUser = await seedMaxUser('filters');
+  await run(
+    "UPDATE job_feed_settings SET remote_preferences = ?, remote_preference = 'remote_first', seniority_targets = ?, seniority_target = 'junior' WHERE user_id = ?",
+    JSON.stringify(['remote_first', 'remote_only', 'hybrid']), JSON.stringify(['junior', 'mid']), filterUser,
+  );
+  const insertApplication = async (title: string, company: string): Promise<string> => {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await run(
+      "INSERT INTO application_sessions (id, user_id, job_title, company, job_description, matching_skills, missing_skills, suggestions, cv_edits, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'An ad.', '[]', '[]', '[]', '[]', 'applied', ?, ?)",
+      id, filterUser, title, company, now, now,
+    );
+    return id;
+  };
+  await insertApplication('Applied AI Engineer', 'dexter health');
+  serpQueue = [filterJobs()];
+  const filterRun = await feedServer.runJobFeedFoundationWorkflow({ userId: filterUser, orchestrator: 'direct' });
+  assert.equal(filterRun.run.status, 'completed', `the second run completed: ${filterRun.run.error_message ?? ''}`);
+  const filterFeed = async () => (await readWholeFeed(filterUser)).items.map((item) => unwrap(item.company));
+
+  await scenario('e1. onsite left out: an ad that says 100% vor Ort never reaches the feed; hybrid, remote and unstated ones do', async () => {
+    const companies = await filterFeed();
+    assert.ok(!companies.includes('Werk GmbH'), `onsite job shown: ${companies.join(', ')}`);
+    for (const kept of ['Hybrid AG', 'Remote Co', 'Quiet KG']) assert.ok(companies.includes(kept), `${kept} is in the feed`);
+    const runRow = await one('SELECT metadata FROM job_feed_runs WHERE id = ?', filterRun.run.id);
+    const metadata = JSON.parse(String(runRow.metadata)) as Record<string, unknown>;
+    assert.deepEqual(metadata.ranking_excluded_by_settings, { workMode: 1, seniority: 1 });
+    // The reading is stored on the job, replacing the board's guess.
+    assert.equal((await one("SELECT work_mode FROM job_feed_canonical_jobs WHERE source_job_id = 'f-onsite'")).work_mode, 'onsite');
+    assert.equal((await one("SELECT work_mode FROM job_feed_canonical_jobs WHERE source_job_id = 'f-hybrid'")).work_mode, 'hybrid');
+    assert.equal((await one("SELECT work_mode FROM job_feed_canonical_jobs WHERE source_job_id = 'f-unknown'")).work_mode, 'unknown', 'a city alone is not onsite');
+    return { companies, excluded: metadata.ranking_excluded_by_settings };
+  });
+
+  await scenario('e2. junior and mid chosen: a senior role is left out, a junior one and one that does not say are kept', async () => {
+    const companies = await filterFeed();
+    assert.ok(!companies.includes('Elder Labs'), 'the senior role is not shown');
+    assert.ok(companies.includes('Fresh GmbH') && companies.includes('Quiet KG'));
+    return { companies };
+  });
+
+  await scenario('e3. a job already in the tracker under another link and title suffix is never ranked or shown', async () => {
+    const companies = await filterFeed();
+    assert.ok(!companies.includes('dexter health GmbH'), 'the applied job is not shown');
+    const ranked = await one(
+      "SELECT COUNT(*) AS n FROM job_feed_ranked_items r JOIN job_feed_canonical_jobs j ON j.id = r.canonical_job_id WHERE r.user_id = ? AND j.source_job_id = 'f-dexter'",
+      filterUser,
+    );
+    assert.equal(Number(ranked.n), 0, 'not even ranked');
+    const runRow = await one('SELECT metadata FROM job_feed_runs WHERE id = ?', filterRun.run.id);
+    assert.equal((JSON.parse(String(runRow.metadata)) as Record<string, unknown>).tracker_excluded_count, 1);
+    return { companies };
+  });
+
+  await scenario('e4. the inbox applies settings when it is read: a later change and a later application hide jobs at once', async () => {
+    // The feed's own fit check makes an application for its job; that must not hide the job.
+    const hybridJob = await one("SELECT id FROM job_feed_canonical_jobs WHERE source_job_id = 'f-hybrid'");
+    const ownApplication = await insertApplication('AI Engineer', 'Hybrid AG');
+    await run(
+      "INSERT INTO job_feed_feedback (id, user_id, canonical_job_id, application_session_id, apply_started_at, generation_status, metadata, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'none', '{}', ?, ?)",
+      crypto.randomUUID(), filterUser, hybridJob.id, ownApplication, new Date().toISOString(), new Date().toISOString(), new Date().toISOString(),
+    );
+    // An application made elsewhere for the junior role does.
+    await insertApplication('Junior AI Engineer', 'Fresh GmbH');
+    // And the work modes narrow to onsite (which takes onsite and hybrid): remote is out.
+    await run("UPDATE job_feed_settings SET remote_preferences = ?, remote_preference = 'onsite' WHERE user_id = ?", JSON.stringify(['onsite']), filterUser);
+    const companies = await filterFeed();
+    assert.ok(companies.includes('Hybrid AG'), 'the feed\'s own application keeps its job');
+    assert.ok(!companies.includes('Fresh GmbH'), 'the job applied to elsewhere is hidden');
+    assert.ok(!companies.includes('Remote Co'), 'the remote job is hidden once remote is left out');
+    return { companies };
   });
 
   await scenario('d9. nothing left the machine except the stubbed SerpAPI calls and the stubbed employer pages', async () => {

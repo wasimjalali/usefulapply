@@ -496,7 +496,9 @@ function inferWorkMode(job: SerpApiJob): JobFeedCanonicalJob['work_mode'] {
     return 'onsite';
   }
 
-  return normalizeOptionalText(job.location) ? 'onsite' : 'unknown';
+  // A city is where the job is, not how it is worked: most German ads with a location are hybrid. The
+  // ranker reads the work mode in the ad and stores it.
+  return 'unknown';
 }
 
 function normalizeEmploymentType(value?: string): JobFeedCanonicalJob['employment_type'] {

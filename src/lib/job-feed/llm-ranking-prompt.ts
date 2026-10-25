@@ -5,6 +5,15 @@ import type {
   JobFeedRankedItemRecord,
 } from '@/lib/job-feed/types';
 import type { JobFeedSettings } from '@/db/types';
+import {
+  SENIORITY_LEVELS,
+  asReadWorkMode,
+  asSeniorityLevels,
+  seniorityAllowed,
+  workModeAllowed,
+  type ReadWorkMode,
+  type SeniorityLevel,
+} from '@/lib/job-feed/settings-filters';
 
 // Pure ranking pieces (prompt, message builders, schema, validator, budget shrink).
 // No model or database imports, so unit tests load this file without a runtime.
@@ -18,6 +27,8 @@ export interface JobFeedRankingModelResponse {
     rank?: number | null;
     reason?: string | null;
     companyDisplay?: string | null;
+    workMode?: string | null;
+    seniorityLevels?: string[] | null;
   }>;
 }
 
@@ -40,7 +51,7 @@ Apply these weights when forming your decision. The weights reflect what actuall
 2. ROLE ALIGNMENT (25%). Does the title and the day-to-day responsibilities match what the candidate is looking for (userProfile.targetRoles)? Exact-title matches rank highest. Clearly adjacent roles ("Applied AI Engineer" for a candidate searching "AI Engineer", "Full-Stack Engineer" for "Backend Engineer" with JS skills) count as aligned. Wildly different domains do not ("Account Executive" for an "AI Engineer" search is a skip even if both need communication). Also weigh inferredProfile.targetDirection when present: a role matching where the candidate is HEADING (their aspirationalTitles or the "to" side of a pivot) counts as aligned even if it doesn't match a past title, as long as the description's requirements are a realistic reach for their current skills.
 3. LOCATION & REMOTE FIT (15%). See rules below under LOCATION SEMANTICS and REMOTE SEMANTICS.
 4. SENIORITY & EXPERIENCE FIT (10%). Combine TWO signals to decide if the candidate is at the right level:
-   a. SeniorityTarget match: within ±1 level of any seniorityTarget is acceptable. A junior candidate seeing a staff/principal role is a skip. A senior candidate seeing an intern role is a skip. Title alone is unreliable in non-English postings; read seniority signals in the description. PRECEDENCE: when inferredProfile.seniority is present with confidence "high", prefer it over seniorityTargets for level fit (it is derived from the CV, not a self-reported setting). Fall back to seniorityTargets when the inferred confidence is medium or low, or when no inferredProfile is present.
+   a. SeniorityTarget match: userProfile.seniorityTargets are the levels the candidate chose, and they are a hard constraint. A role is acceptable when it is open to one of those levels; a role only for levels above or below every chosen level is a skip. Title alone is unreliable in non-English postings; read seniority signals in the description (stated years, scope, "Junior", "Senior", "Lead"). PRECEDENCE: the chosen seniorityTargets always win over inferredProfile.seniority, which is an estimate from the CV and can be wrong. Use inferredProfile.seniority only when seniorityTargets is empty, and then accept roles within one level of it.
    b. YEARS OF EXPERIENCE match: when the posting explicitly states a required experience range (e.g. "5-8 years", "mindestens 7 Jahre", "minimum 10 years of experience") AND the candidate's userProfile.yearsExperience is provided, apply this rule:
       - If the candidate has at least HALF of the stated minimum (candidate_years >= required_min / 2), treat as a soft match. Acceptable to surface as "good" if other signals are strong, especially when the description uses soft language like "experience is less important for the right candidate", "exceptional juniors welcome", or "ideally but not required".
       - If the candidate has less than HALF of the stated minimum (candidate_years < required_min / 2), SKIP. This is the most common "wrong level" rejection and should not be ambiguous. Do not surface a role requiring 8-10 years to a candidate with 2 years unless the posting explicitly says experience is negotiable.
@@ -77,13 +88,15 @@ Reject when the job location is clearly in a different country AND the work mode
 # Remote semantics
 Use the candidate's remotePreferences array to decide:
 - If they picked **remote_only**: accept only jobs that are clearly fully remote. Reject onsite-only and strict-hybrid jobs.
-- If they picked **remote_first**: prefer remote, but accept hybrid and accept onsite IF the location matches a preferredLocation.
-- If they picked **hybrid**: accept hybrid or remote. Accept onsite only when the location matches a preferredLocation.
-- If they picked **onsite**: accept onsite or hybrid. Accept a fully-remote posting only if the candidate also picked remote_first or flexible.
+- If they picked **remote_first**: prefer remote, and accept hybrid. Do not accept onsite.
+- If they picked **hybrid**: accept hybrid or remote. Do not accept onsite.
+- If they picked **onsite**: accept onsite or hybrid. Accept a fully-remote posting only if the candidate also picked remote_first, remote_only, hybrid or flexible.
 - If they picked **flexible**: accept anything.
 - If they picked multiple preferences, the job matches if it satisfies ANY of them.
 
-When the posting's work mode is ambiguous (the description mentions office presence sometimes, remote other times, or just doesn't say), LEAN IN the candidate's favor — treat it as compatible and let the candidate ask during the interview. Do not skip for ambiguity alone.
+An onsite role is acceptable only when the candidate picked onsite or flexible, wherever the role is. These are the candidate's own settings: the server removes every job whose workMode you report outside them, so a wrong workMode either hides a good job or shows an excluded one. Read it carefully.
+
+When the posting's work mode is ambiguous (the description mentions office presence sometimes, remote other times, or just doesn't say), report workMode "unknown" and LEAN IN the candidate's favor: treat it as compatible and let the candidate ask during the interview. Do not skip for ambiguity alone.
 
 # Non-English postings
 Job descriptions often arrive in German, French, Spanish, Italian, Dutch, Portuguese, or other languages, especially when the candidate targets DACH or EU markets. Rank these on content, not language. Never downgrade a posting just because it is non-English if the candidate's languages list includes English or the posting's language. Mentally translate and evaluate on the content.
@@ -114,7 +127,7 @@ Before you emit the JSON, silently check:
 1. Every candidate jobId from the input is present in your items, exactly once. items.length == candidates.length.
 2. No two strong/good items have the same rank integer.
 3. No two strong/good items represent the same underlying job (deduplication applied).
-4. No item violates a hard user constraint (employment type, stated below-minimum salary, sponsorship when candidate needs sponsorship).
+4. No item violates a hard user constraint (employment type, stated below-minimum salary, sponsorship when candidate needs sponsorship, a work mode outside remotePreferences, a level outside seniorityTargets).
 5. Your reason strings, if present, do not use em-dashes (—), en-dashes (–), or horizontal bars (―, ‒). Use commas, colons, semicolons, periods, or parentheses instead.
 6. Your reason strings do not use AI-tell phrases: "leverage", "pivotal", "robust", "spearheaded", "orchestrated", "revolutionized", "delve", "it is important to note", "in today's fast-paced world", "navigate the landscape", "tapestry".
 
@@ -135,6 +148,8 @@ Return ONLY a valid JSON object. No markdown fences. No prose. Start with { and 
 - "rank": positive integer when decision is "strong" or "good", with no two items sharing a rank. Null when decision is "skip".
 - "reason": optional short sentence (<=160 characters) explaining the match or mismatch. Plain professional English. No em-dashes. May be null.
 - "companyDisplay": optional. If the description clearly names a different employer than the source "company" field (aggregator listings often do), set this to that employer. Otherwise null.
+- "workMode": "remote" | "hybrid" | "onsite" | "unknown", as the ad itself states it, for every item including skips. "remote": fully remote. "hybrid": some office days and some remote days, including "up to 2 days mobile work a week", "Homeoffice-Anteil", "flexible Arbeit im Mobile Office". "onsite": the ad says the work is in the office or on site with no remote days. "unknown": the ad does not say. A city in the location field alone is "unknown", not "onsite". The candidate's workMode field is a guess from the job board, not a fact; trust the description over it.
+- "seniorityLevels": every level the role is open to, from "intern", "junior", "mid", "senior", "lead", "staff", "manager", read from the title and the stated requirements, for every item including skips. "2-4 Jahre Berufserfahrung" is ["junior", "mid"]; "Senior AI Engineer, 6+ years" is ["senior"]; "Werkstudent" is ["intern"]. An empty array when the ad does not say.
 
 Every candidate jobId must appear exactly once in the items array. The candidate count and your items count must match.`;
 
@@ -314,8 +329,10 @@ export const RANKING_JSON_SCHEMA: Record<string, unknown> = {
           rank: { anyOf: [{ type: 'integer' }, { type: 'null' }] },
           reason: { anyOf: [{ type: 'string' }, { type: 'null' }] },
           companyDisplay: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+          workMode: { type: 'string', enum: ['remote', 'hybrid', 'onsite', 'unknown'] },
+          seniorityLevels: { type: 'array', items: { type: 'string', enum: [...SENIORITY_LEVELS] } },
         },
-        required: ['jobId', 'decision', 'rank', 'reason', 'companyDisplay'],
+        required: ['jobId', 'decision', 'rank', 'reason', 'companyDisplay', 'workMode', 'seniorityLevels'],
         additionalProperties: false,
       },
     },
@@ -346,7 +363,17 @@ export function buildDeterministicRankedItems(candidates: JobFeedRankingCandidat
 export function validateModelRankingResponse(
   payload: JobFeedRankingModelResponse,
   candidates: JobFeedRankingCandidate[],
-  visibleCap: number = JOB_FEED_VISIBLE_MAX_COUNT
+  visibleCap: number = JOB_FEED_VISIBLE_MAX_COUNT,
+  /**
+   * When given, a job the model surfaced whose work mode or level it read outside these settings is
+   * dropped before the cap, so the next qualifying job takes its slot. `excluded` counts them.
+   */
+  enforce?: {
+    settings: JobFeedSettings;
+    excluded: { workMode: number; seniority: number };
+    /** The work mode read in every ad the model answered for, skips and removed jobs included. */
+    workModes: Map<string, ReadWorkMode>;
+  },
 ): JobFeedRankedItemRecord[] | null {
   if (!payload || !Array.isArray(payload.items)) {
     return null;
@@ -360,6 +387,8 @@ export function validateModelRankingResponse(
     rank: number;
     reason: string | null;
     companyDisplay: string | null;
+    workMode: ReadWorkMode;
+    seniorityLevels: SeniorityLevel[];
   }> = [];
 
   // One malformed item must not discard the whole ranking. A bad entry is
@@ -373,6 +402,7 @@ export function validateModelRankingResponse(
     const decision = item.decision;
     if (!jobId || !candidateById.has(jobId) || seenJobIds.has(jobId)) continue;
     if (decision !== 'strong' && decision !== 'good' && decision !== 'skip') continue;
+    enforce?.workModes.set(jobId, asReadWorkMode(item.workMode));
 
     // A skip is a real decision, so it counts toward coverage.
     if (decision === 'skip') {
@@ -390,6 +420,17 @@ export function validateModelRankingResponse(
 
     seenJobIds.add(jobId);
 
+    const workMode = asReadWorkMode(item.workMode);
+    const seniorityLevels = asSeniorityLevels(item.seniorityLevels);
+    if (enforce && !workModeAllowed(workMode, enforce.settings)) {
+      enforce.excluded.workMode += 1;
+      continue;
+    }
+    if (enforce && !seniorityAllowed(seniorityLevels, enforce.settings)) {
+      enforce.excluded.seniority += 1;
+      continue;
+    }
+
     const companyDisplayRaw = typeof item.companyDisplay === 'string'
       ? item.companyDisplay.replace(/[\u0000-\u001f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').trim()
       : '';
@@ -399,6 +440,8 @@ export function validateModelRankingResponse(
       rank,
       reason: normalizeReason(item.reason),
       companyDisplay: companyDisplayRaw.length > 0 ? companyDisplayRaw.slice(0, 120) : null,
+      workMode,
+      seniorityLevels,
     });
   }
 
@@ -423,6 +466,8 @@ export function validateModelRankingResponse(
       reason: item.reason,
       deterministicScore: item.candidate.deterministicScore,
       companyDisplay: item.companyDisplay,
+      workMode: item.workMode,
+      seniorityLevels: item.seniorityLevels,
     }));
 }
 

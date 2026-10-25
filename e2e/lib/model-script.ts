@@ -734,7 +734,24 @@ export function languageAnswer(): HaikuAnswer {
   return reply(JSON.stringify({ language: 'en' }));
 }
 
-interface RankingCandidate { jobId: string; deterministicRank: number; title?: string }
+interface RankingCandidate { jobId: string; deterministicRank: number; title?: string; descriptionExcerpt?: string | null }
+
+/** The work mode a careful reader takes from the ad's own words. The scripted ads say it plainly or not at all. */
+function scriptedWorkMode(text: string): 'remote' | 'hybrid' | 'onsite' | 'unknown' {
+  const lower = text.toLowerCase();
+  if (/100\s*% vor ort|fully on-site|no remote work/.test(lower)) return 'onsite';
+  if (/fully remote|100\s*% remote/.test(lower)) return 'remote';
+  if (/hybrid|mobile office|mobilem arbeiten/.test(lower)) return 'hybrid';
+  return 'unknown';
+}
+
+/** The levels the title names. Untitled levels are unknown (empty). */
+function scriptedLevels(title: string): string[] {
+  if (/\bsenior\b/i.test(title)) return ['senior'];
+  if (/\bjunior\b/i.test(title)) return ['junior'];
+  if (/\blead\b/i.test(title)) return ['lead'];
+  return [];
+}
 
 /**
  * Ranking: every candidate gets a decision, best last-deterministic first, so the persisted order differs from
@@ -753,6 +770,8 @@ export function rankingAnswer(body: MessagesBody): HaikuAnswer {
     rank: index >= cap ? null : index + 1,
     reason: index >= cap ? null : 'Scripted ranker: reads the description and ranks it.',
     companyDisplay: null,
+    workMode: scriptedWorkMode(candidate.descriptionExcerpt ?? ''),
+    seniorityLevels: scriptedLevels(candidate.title ?? ''),
   }));
   return reply(JSON.stringify({ items }));
 }

@@ -350,6 +350,10 @@ export interface JobFeedRankedItemRecord {
   reason: string | null;
   deterministicScore: number;
   companyDisplay?: string | null;
+  /** The work mode the ranker read in the ad. Absent on the deterministic fallback. */
+  workMode?: 'remote' | 'hybrid' | 'onsite' | 'unknown';
+  /** The levels the ranker read the role is open to; empty when the ad does not say. */
+  seniorityLevels?: string[];
 }
 
 export interface JobFeedRankingExecutionResult {
@@ -363,6 +367,10 @@ export interface JobFeedRankingExecutionResult {
     outputTokens: number;
     latencyMs: number;
   } | null;
+  /** Jobs the model surfaced that the settings removed (completed_llm only). */
+  excludedBySettings?: { workMode: number; seniority: number };
+  /** The work mode the model read in each ad it answered for, by canonical job id (completed_llm only). */
+  readWorkModes?: Map<string, 'remote' | 'hybrid' | 'onsite' | 'unknown'>;
 }
 
 export interface JobFeedRunWorkflowResult {

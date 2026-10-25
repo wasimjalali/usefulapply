@@ -52,6 +52,7 @@ import {
 import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
 import { enrichJobDescriptions } from '@/lib/job-feed/enrich-descriptions';
 import { isDescriptionComplete } from '@/lib/job-feed/posting-page';
+import { asSeniorityLevels, buildTrackerIndex, inTracker, seniorityAllowed, workModeAllowed } from '@/lib/job-feed/settings-filters';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
@@ -1062,10 +1063,22 @@ async function loadDedupedInboxRows(params: {
   // Exclude jobs the user has already acted on (applied / dismissed /
   // rated not relevant). Keeps the inbox focused on roles the user has
   // yet to decide on.
-  const blockedIds = await getBlockedCanonicalJobIdsAdmin(params.userId);
-  const visibleRows = blockedIds.size > 0
-    ? dedupedRows.filter((row) => !blockedIds.has(row.canonical_job_id))
-    : dedupedRows;
+  // Settings are applied again when the inbox is read, so a change takes effect at once: the work mode
+  // and levels the ranker read, and jobs that have since entered the tracker.
+  const [exclusions, settings, jobs] = await Promise.all([
+    loadFeedExclusionsAdmin(params.userId),
+    getJobFeedSettingsAdmin(params.userId),
+    adminRepo.getCanonicalJobsByIds([...seenJobIds]),
+  ]);
+  const jobsById = new Map(jobs.map((job) => [job.id, job]));
+  const visibleRows = dedupedRows.filter((row) => {
+    const job = jobsById.get(row.canonical_job_id);
+    if (!job) return !exclusions.blockedIds.has(row.canonical_job_id);
+    if (isExcludedFromFeed(job, exclusions)) return false;
+    if (!settings) return true;
+    const metadata = isJsonRecord(row.metadata) ? row.metadata : {};
+    return workModeAllowed(job.work_mode, settings) && seniorityAllowed(asSeniorityLevels(metadata.seniority_levels), settings);
+  });
 
   return { rows: visibleRows, totalCount: visibleRows.length };
 }
@@ -1546,10 +1559,13 @@ export async function runJobFeedFoundationWorkflow(params: {
     // Exclude canonical jobs the user has already applied to, dismissed, or
     // rated "not relevant" — no point ranking rows the user has already
     // rejected. Keeps the feed fresh and saves LLM budget.
-    const blockedIds = await getBlockedCanonicalJobIdsAdmin(userId);
-    const rankableJobs = blockedIds.size > 0
-      ? ingestion.canonicalJobs.filter((job) => !blockedIds.has(job.id))
-      : ingestion.canonicalJobs;
+    // Jobs already in the tracker are left out too, matched by company and title, since an application
+    // made outside the feed (or for the same ad found under another link) has no feedback row.
+    const exclusions = await loadFeedExclusionsAdmin(userId);
+    const rankableJobs = ingestion.canonicalJobs.filter((job) => !isExcludedFromFeed(job, exclusions));
+    const trackerExcludedCount = ingestion.canonicalJobs.filter(
+      (job) => !exclusions.blockedIds.has(job.id) && isExcludedFromFeed(job, exclusions),
+    ).length;
 
     const prefilter = prefilterJobFeedJobs({
       settings,
@@ -1594,6 +1610,13 @@ export async function runJobFeedFoundationWorkflow(params: {
       userId,
       items: rankingResult.items,
     });
+    // The ranker read the work mode in the ad; the board's label is often only a city. Keep the reading.
+    for (const [jobId, workMode] of rankingResult.readWorkModes ?? []) {
+      const job = descriptions.jobs.find((candidate) => candidate.id === jobId);
+      if (job && workMode !== 'unknown' && workMode !== job.work_mode) {
+        await adminRepo.updateCanonicalJob(job.id, { work_mode: workMode });
+      }
+    }
     const rankedPreviewItems = materializedRanking.preview;
 
     runningRun = await updateJobFeedRun(run.id, {
@@ -1615,6 +1638,8 @@ export async function runJobFeedFoundationWorkflow(params: {
         duplicate_count: ingestion.duplicateCount,
         failed_fetches: toJson(ingestion.failedFetches),
         ingestion_preview_jobs: toJson(ingestion.previewJobs),
+        tracker_excluded_count: trackerExcludedCount,
+        ranking_excluded_by_settings: toJson(rankingResult.excludedBySettings ?? null),
         prefilter_survivors_count: prefilter.survivors.length,
         descriptions_fetch_attempted: descriptions.attempted,
         descriptions_from_employer_page: descriptions.enriched,
@@ -1969,7 +1994,11 @@ async function persistJobFeedRankedItemsForRunAdmin(params: {
     ranking_source: item.rankingSource,
     reason: item.reason,
     deterministic_score: item.deterministicScore,
-    metadata: item.companyDisplay ? { company_display: item.companyDisplay } : {},
+    metadata: {
+      ...(item.companyDisplay ? { company_display: item.companyDisplay } : {}),
+      ...(item.workMode ? { work_mode: item.workMode } : {}),
+      ...(item.seniorityLevels ? { seniority_levels: item.seniorityLevels } : {}),
+    },
   })));
   return { materialized: true, preview: params.items.map(toRankedPreviewRecord) };
 }
@@ -2055,6 +2084,33 @@ export async function getBlockedCanonicalJobIdsAdmin(userId: string): Promise<Se
   }
 
   return blocked;
+}
+
+export interface FeedExclusions {
+  /** Jobs the user applied to from the feed, dismissed or rated not relevant. */
+  blockedIds: Set<string>;
+  trackerIndex: Map<string, Set<string>>;
+  /** The application the feed itself made for a job, which must not hide that job. */
+  ownApplicationByJob: Map<string, string>;
+}
+
+export async function loadFeedExclusionsAdmin(userId: string): Promise<FeedExclusions> {
+  const [feedback, applications] = await Promise.all([
+    jobFeedRepo.listFeedback(userId),
+    sessionsRepo.listApplicationIdentities(userId),
+  ]);
+  const blockedIds = new Set<string>();
+  const ownApplicationByJob = new Map<string, string>();
+  for (const row of feedback) {
+    if (isJobFeedbackBlocked(row)) blockedIds.add(row.canonical_job_id);
+    if (row.application_session_id) ownApplicationByJob.set(row.canonical_job_id, row.application_session_id);
+  }
+  return { blockedIds, trackerIndex: buildTrackerIndex(applications), ownApplicationByJob };
+}
+
+export function isExcludedFromFeed(job: Pick<JobFeedCanonicalJob, 'id' | 'company' | 'title'>, exclusions: FeedExclusions): boolean {
+  if (exclusions.blockedIds.has(job.id)) return true;
+  return inTracker(job, exclusions.trackerIndex, exclusions.ownApplicationByJob.get(job.id) ?? null);
 }
 
 function toFeedItem(

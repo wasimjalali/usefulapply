@@ -7,6 +7,7 @@ import type {
 import type { JobFeedSettings } from '@/db/types';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 import { callHaiku, InputBudgetError, measureHaikuRequest, type HaikuResponse } from '@/lib/models/haiku';
+import { workModeAllowed } from '@/lib/job-feed/settings-filters';
 import {
   RANKING_INPUT_BUDGET_TOKENS,
   RANKING_JSON_SCHEMA,
@@ -71,7 +72,11 @@ export async function rankWithHaiku(params: {
     excludedTerms = [],
     generationContext,
   } = params;
-  const deterministicItems = buildDeterministicRankedItems(candidates, visibleCap);
+  // The fallback has no reading of the ads, so it can only hold jobs to the work mode the board stated.
+  const deterministicItems = buildDeterministicRankedItems(
+    candidates.filter((candidate) => workModeAllowed(candidate.workMode, settings)),
+    visibleCap,
+  );
 
   if (candidates.length === 0) {
     return { status: 'no_candidates', items: [], errorMessage: null, model: null };
@@ -140,7 +145,12 @@ export async function rankWithHaiku(params: {
 
   try {
     const parsed = JSON.parse(response.content) as JobFeedRankingModelResponse;
-    const items = validateModelRankingResponse(parsed, candidates, visibleCap);
+    const excluded = { workMode: 0, seniority: 0 };
+    const workModes = new Map<string, 'remote' | 'hybrid' | 'onsite' | 'unknown'>();
+    const items = validateModelRankingResponse(parsed, candidates, visibleCap, { settings, excluded, workModes });
+    if (excluded.workMode > 0 || excluded.seniority > 0) {
+      console.log(`[JobFeedRanking] removed by settings: ${excluded.workMode} work mode, ${excluded.seniority} seniority`);
+    }
     if (!items) {
       return {
         status: 'llm_failed_fallback',
@@ -149,7 +159,7 @@ export async function rankWithHaiku(params: {
         model: modelInfo,
       };
     }
-    return { status: 'completed_llm', items, errorMessage: null, model: modelInfo };
+    return { status: 'completed_llm', items, errorMessage: null, model: modelInfo, excludedBySettings: excluded, readWorkModes: workModes };
   } catch (error) {
     console.error('[JobFeedRanking] returned an invalid response', error);
     return { status: 'llm_failed_fallback', items: deterministicItems, errorMessage: errorText(error), model: modelInfo };
