@@ -984,6 +984,10 @@ export const jobFeedCanonicalJobs = sqliteTable(
     salary_max: integer('salary_max'),
     salary_currency: text('salary_currency'),
     description: text('description'),
+    /** 'serp' (Google Jobs' copy) or 'employer_page' (the JobPosting read from the ad's own page). */
+    description_source: text('description_source').notNull().default('serp'),
+    /** Whether the description is the whole ad. Null on rows from before migration 0016. */
+    description_complete: integer('description_complete', { mode: 'boolean' }),
     apply_url: text('apply_url'),
     source_url: text('source_url'),
     posted_at_text: text('posted_at_text'),

@@ -38,6 +38,7 @@ import type {
   UpdateTables,
 } from '@/db/types';
 import { getRun, updateRun } from '@/db/repos/jobFeed';
+import { isDescriptionComplete } from '@/lib/job-feed/posting-page';
 
 interface ObservedNormalizedJob {
   draft: NormalizedSerpApiJob;
@@ -922,6 +923,8 @@ function buildCanonicalJobInsert(
     salary_max: aggregated.draft.salary_max,
     salary_currency: aggregated.draft.salary_currency,
     description: aggregated.draft.description,
+    description_source: 'serp',
+    description_complete: isDescriptionComplete(aggregated.draft.description),
     apply_url: aggregated.draft.apply_url,
     source_url: aggregated.draft.source_url,
     posted_at_text: aggregated.draft.posted_at_text,
@@ -955,7 +958,13 @@ function buildCanonicalJobUpdate(
     salary_min: pickNumber(existing.salary_min, draft.salary_min),
     salary_max: pickNumber(existing.salary_max, draft.salary_max),
     salary_currency: draft.salary_currency ?? existing.salary_currency,
-    description: pickLongerText(existing.description, draft.description),
+    // A text read from the ad's own page is the ad. A later Google copy of it is never better.
+    ...(existing.description_source === 'employer_page'
+      ? {}
+      : (() => {
+          const description = pickLongerText(existing.description, draft.description);
+          return { description, description_complete: isDescriptionComplete(description) };
+        })()),
     apply_url: draft.apply_url ?? existing.apply_url,
     source_url: draft.source_url ?? existing.source_url,
     posted_at_text: pickFreshnessText(

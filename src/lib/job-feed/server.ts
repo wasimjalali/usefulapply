@@ -50,6 +50,8 @@ import {
   shouldReuseUserConfirmedStrategy,
 } from '@/lib/job-feed/search-plan';
 import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
+import { enrichJobDescriptions } from '@/lib/job-feed/enrich-descriptions';
+import { isDescriptionComplete } from '@/lib/job-feed/posting-page';
 import type { StructuredCV } from '@/lib/types/cv-schema';
 import type { LlmGenerationContext } from '@/db/repos/adminMetrics';
 
@@ -1560,9 +1562,13 @@ export async function runJobFeedFoundationWorkflow(params: {
     // a deterministic-score shortlist of 15 ever could, and the token cost
     // is trivial at our scale. Deterministic shortlist stays wired to the
     // fallback path inside the ranker for the case where the LLM fails.
+    // Google's copy of an ad is often a snippet or a flat block with its lists stripped. Read the ad's own
+    // page for the jobs still in the running, so the ranker and every reader get the whole text.
+    const descriptions = await enrichJobDescriptions({ jobs: prefilter.survivors, updateJob: adminRepo.updateCanonicalJob });
+
     const rankingPrep = prepareJobFeedRankingCandidates({
       settings,
-      jobs: prefilter.survivors,
+      jobs: descriptions.jobs,
     });
     const yearsExperience = await getUserYearsExperienceAdmin(userId);
     const rankingResult = await rankJobFeedCandidates({
@@ -1610,6 +1616,8 @@ export async function runJobFeedFoundationWorkflow(params: {
         failed_fetches: toJson(ingestion.failedFetches),
         ingestion_preview_jobs: toJson(ingestion.previewJobs),
         prefilter_survivors_count: prefilter.survivors.length,
+        descriptions_fetch_attempted: descriptions.attempted,
+        descriptions_from_employer_page: descriptions.enriched,
         prefilter_rejected_count: prefilter.rejectedCount,
         prefilter_rejections_by_reason: toJson(prefilter.rejectionsByReason),
         prefilter_survivors_preview: toJson(prefilter.survivorsPreview),
@@ -2078,6 +2086,7 @@ function toFeedItem(
     employmentType: job.employment_type,
     salaryText,
     description: job.description,
+    descriptionComplete: job.description_complete ?? isDescriptionComplete(job.description),
     highlights,
     applyUrl: job.apply_url && isSafeExternalUrl(job.apply_url) ? job.apply_url : null,
     sourceUrl: job.source_url && isSafeExternalUrl(job.source_url) ? job.source_url : null,

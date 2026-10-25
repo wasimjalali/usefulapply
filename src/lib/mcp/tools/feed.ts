@@ -90,6 +90,7 @@ const feedItemSchema = z.object({
   applicationId: z.string().nullable(),
   generationStatus: z.string(),
   description: z.string().nullable().optional(),
+  descriptionComplete: z.boolean().optional(),
   highlights: z.array(z.object({ title: z.string(), items: z.array(z.string()) })).optional(),
   sourceUrl: z.string().nullable().optional(),
   applyOptions: z.array(z.object({ title: z.string(), link: z.string() })).optional(),
@@ -99,15 +100,27 @@ function wrapOrNull(value: string | null | undefined, cap?: number): string | nu
   return value ? wrapLong(value, cap) : null;
 }
 
-/** The most description text one get_job_feed call returns in total, split evenly across its jobs, so a page stays well under about 100 KB. */
+/**
+ * About how much description text one get_job_feed call returns. A description is never cut: a page with
+ * `full` stops before the job that would pass this (the first job always fits) and says where to go on.
+ */
 const DESCRIPTION_BUDGET = 40_000;
-const MAX_DESCRIPTION = 12_000;
 
-function descriptionCapFor(jobCount: number): number {
-  return Math.min(MAX_DESCRIPTION, Math.floor(DESCRIPTION_BUDGET / Math.max(jobCount, 1)));
+/** The views of `items` that fit one page, and how many of them there are. */
+function fitPage(items: JobFeedFeedItem[], detail: 'concise' | 'full'): z.infer<typeof feedItemSchema>[] {
+  const views: z.infer<typeof feedItemSchema>[] = [];
+  let used = 0;
+  for (const item of items) {
+    const view = toFeedItemView(item, detail);
+    const size = (view.description?.length ?? 0) + JSON.stringify(view.highlights ?? []).length;
+    if (detail === 'full' && views.length > 0 && used + size > DESCRIPTION_BUDGET) break;
+    used += size;
+    views.push(view);
+  }
+  return views;
 }
 
-function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full', descriptionCap: number): z.infer<typeof feedItemSchema> {
+function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full'): z.infer<typeof feedItemSchema> {
   const view: z.infer<typeof feedItemSchema> = {
     jobId: item.id,
     title: wrapShort(item.title),
@@ -128,7 +141,8 @@ function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full', descr
     generationStatus: item.feedback.generationStatus,
   };
   if (detail === 'full') {
-    view.description = wrapOrNull(item.description, descriptionCap);
+    view.description = wrapOrNull(item.description, Number.POSITIVE_INFINITY);
+    view.descriptionComplete = item.descriptionComplete;
     view.highlights = item.highlights.map((highlight) => ({
       title: wrapShort(highlight.title),
       items: highlight.items.map((entry) => wrapShort(entry)),
@@ -148,7 +162,7 @@ const getJobFeed = defineTool({
     view: z.enum(['inbox', 'saved']).describe('inbox is the ranked feed of the last 7 days. saved is the bookmarked jobs, newest first.'),
     offset: z.number().int().min(0).max(10_000).optional().describe('Jobs to skip. Defaults to 0.'),
     limit: z.number().int().min(1).max(50).optional().describe('Jobs to return, 1 to 50. Defaults to 10.'),
-    detail: z.enum(['concise', 'full']).optional().describe('concise (the default) leaves out the job description. full adds the description, highlights and apply links; the descriptions of one call share about 40,000 characters, so a long page gets shorter descriptions.'),
+    detail: z.enum(['concise', 'full']).optional().describe('concise (the default) leaves out the job description. full adds the whole description, highlights and apply links. Descriptions are never cut: a full page holds about 40,000 characters of them and may return fewer jobs than the limit; read on from nextOffset.'),
   }),
   output: z.object({
     view: z.enum(['inbox', 'saved']),
@@ -157,31 +171,38 @@ const getJobFeed = defineTool({
     hasMore: z.boolean(),
     offset: z.number(),
     limit: z.number(),
+    /** The offset of the next page, or null when this page reached the end. */
+    nextOffset: z.number().nullable(),
   }),
   async run({ view, offset = 0, limit = 10, detail = 'concise' }, { userId }) {
     return feedCall(async () => {
       if (view === 'inbox') {
         await withinRateLimit(`job-feed-inbox:${userId}`, RATE_LIMITS['job-feed-inbox']);
         const page = await loadInboxPage(userId, offset, limit);
+        const items = fitPage(page.items, detail);
+        const hasMore = page.hasMore || items.length < page.items.length;
         return ok({
           view,
-          items: page.items.map((item) => toFeedItemView(item, detail, descriptionCapFor(page.items.length))),
+          items,
           totalCount: page.totalCount,
-          hasMore: page.hasMore,
+          hasMore,
           offset: page.offset,
           limit: page.limit,
+          nextOffset: hasMore ? page.offset + items.length : null,
         });
       }
       await withinRateLimit(`job-feed-saved:${userId}`, RATE_LIMITS['job-feed-saved']);
       const saved = await loadSavedJobs(userId);
-      const items = saved.slice(offset, offset + limit);
+      const items = fitPage(saved.slice(offset, offset + limit), detail);
+      const hasMore = offset + items.length < saved.length;
       return ok({
         view,
-        items: items.map((item) => toFeedItemView(item, detail, descriptionCapFor(items.length))),
+        items,
         totalCount: saved.length,
-        hasMore: offset + items.length < saved.length,
+        hasMore,
         offset,
         limit,
+        nextOffset: hasMore ? offset + items.length : null,
       });
     });
   },

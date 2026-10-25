@@ -233,6 +233,8 @@ export interface JobFeedFeedItem {
   employmentType: JobFeedCanonicalJob['employment_type'];
   salaryText: string | null;
   description: string | null;
+  /** False when the description is a snippet or was cut off and the ad's own page could not be read. */
+  descriptionComplete: boolean;
   highlights: JobFeedHighlight[];
   applyUrl: string | null;
   sourceUrl: string | null;
