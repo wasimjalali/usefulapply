@@ -178,8 +178,11 @@ export function htmlToAdText(html: string): string {
       closeParagraph();
       if (!closing) {
         // <li><p>Item</p></li>, common on ATS pages: the paragraph is the item, so it keeps the bullet.
-        const bullet = !heading && out.length > 0 && out[out.length - 1] === '\n- ';
-        if (bullet) out.pop();
+        // Pretty-printed HTML leaves whitespace between the two tags, which says nothing.
+        let last = out.length - 1;
+        while (last >= 0 && !out[last].trim()) last -= 1;
+        const bullet = !heading && last >= 0 && out[last] === '\n- ';
+        if (bullet) out.length = last;
         paragraph = { parts: [], boldDepth: 0, sawBold: false, plainText: false, bullet };
       }
       continue;
@@ -206,7 +209,9 @@ export function htmlToAdText(html: string): string {
   closeParagraph();
   if (heading) out.push(`\n\n${asHeading(heading.join(''))}\n`);
 
+  // A lone surrogate (a JSON-LD string cut mid-emoji) is a 400 at the model API: replaced, never stored.
   return out.join('')
+    .toWellFormed()
     .replace(/\u00a0/g, ' ')
     .replace(/[ \t\f\v]+/g, ' ')
     .replace(/ *\n */g, '\n')
@@ -328,9 +333,9 @@ const MAX_POSTING_CHARS = 40_000;
 
 /**
  * The ad text from a page's HTML, for the job titled `title` at `company`: the one `JobPosting` that fits.
- * A posting naming another employer never fits. With one posting on the page, half the title words in
- * common is enough (boards rename titles); with several, the best must fit well and beat the next, or the
- * page is a list and nothing is taken. Null when nothing fits, or the converted text is shorter than what we
+ * A posting naming another employer never fits. The title must fit (0.7 of the words in common, both
+ * ways) with the same level words (senior, junior, lead); with several postings the best must also beat the
+ * next, or the page is a list and nothing is taken. Null when nothing fits, or the converted text is shorter than what we
  * have or too long to be one ad.
  */
 export function readPostingFromHtml(html: string, title: string, company: string, current: string | null): string | null {
@@ -415,14 +420,26 @@ function decodeBody(bytes: Uint8Array, contentType: string | null): string {
   return new TextDecoder('utf-8').decode(bytes);
 }
 
-/** The page's HTML, following at most three redirects, each one re-checked. Null on any failure. */
-export async function fetchPostingHtml(startUrl: string, fetchImpl: typeof fetch = fetch, deadline = Number.POSITIVE_INFINITY): Promise<string | null> {
+/**
+ * A page fetch that failed: `transient` when trying again later may well work (a timeout, a dropped
+ * connection, a 408, 429 or 5xx), false when the page itself said no (any other status, not HTML, a link
+ * we never fetch).
+ */
+export interface PostingFetchFailure {
+  html: null;
+  transient: boolean;
+}
+
+/** The page's HTML, following at most three redirects, each one re-checked. */
+export async function fetchPostingHtml(startUrl: string, fetchImpl: typeof fetch = fetch, deadline = Number.POSITIVE_INFINITY): Promise<{ html: string } | PostingFetchFailure> {
+  const refused: PostingFetchFailure = { html: null, transient: false };
+  const transient: PostingFetchFailure = { html: null, transient: true };
   let url = startUrl;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
-    if (!isFetchablePostingUrl(url)) return null;
+    if (!isFetchablePostingUrl(url)) return refused;
     // Each hop gets the usual timeout, cut short by the caller's deadline for the whole pass.
     const timeout = Math.min(FETCH_TIMEOUT_MS, deadline - Date.now());
-    if (timeout <= 0) return null;
+    if (timeout <= 0) return transient;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);
     try {
@@ -434,27 +451,30 @@ export async function fetchPostingHtml(startUrl: string, fetchImpl: typeof fetch
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get('location');
         await response.body?.cancel();
-        if (!location) return null;
+        if (!location) return refused;
         url = new URL(location, url).href;
         continue;
       }
       if (!response.ok) {
         await response.body?.cancel();
-        return null;
+        return response.status === 408 || response.status === 429 || response.status >= 500 ? transient : refused;
       }
       const type = response.headers.get('content-type') ?? '';
       if (type && !/html|xml/i.test(type)) {
         await response.body?.cancel();
-        return null;
+        return refused;
       }
-      return await readCapped(response);
+      // Null when the page has no body or is too big to be one ad page.
+      const html = await readCapped(response);
+      return html === null ? refused : { html };
     } catch {
-      return null;
+      // A timeout, a dropped connection or a bad redirect target.
+      return transient;
     } finally {
       clearTimeout(timer);
     }
   }
-  return null;
+  return refused;
 }
 
 /** The links worth trying for an ad, apply options first, each host once, at most three. */
@@ -481,12 +501,22 @@ export async function readFullPosting(params: {
   fetchImpl?: typeof fetch;
   /** When the whole enrichment pass must end (epoch ms). */
   deadline?: number;
-}): Promise<{ text: string; url: string } | null> {
+}): Promise<{ text: string; url: string } | PostingReadFailure> {
+  let transient = false;
   for (const url of params.urls) {
-    const html = await fetchPostingHtml(url, params.fetchImpl, params.deadline);
-    if (!html) continue;
-    const text = readPostingFromHtml(html, params.title, params.company, params.current);
+    const page = await fetchPostingHtml(url, params.fetchImpl, params.deadline);
+    if (page.html === null) {
+      transient ||= page.transient;
+      continue;
+    }
+    const text = readPostingFromHtml(page.html, params.title, params.company, params.current);
     if (text) return { text, url };
   }
-  return null;
+  return { text: null, transient };
+}
+
+/** No readable ad: `transient` when a page could not be fetched for a reason that may pass. */
+export interface PostingReadFailure {
+  text: null;
+  transient: boolean;
 }

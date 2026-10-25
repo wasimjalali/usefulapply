@@ -42,7 +42,7 @@ interface FeedEditViewProps {
   onRereadCv: () => Promise<{ ok: true } | { ok: false; error: string }>;
   /** `expectedRevision` is the settings revision the draft was made from; a newer saved one refuses the save. */
   onSavePreferences: (draft: JobFeedSettingsInput, plan: ConfirmedSearchQuery[], expectedRevision: number | null) => Promise<
-    { ok: true; settingsVersion: number | null } | { ok: false; error: string; stale: boolean }
+    { ok: true; settingsVersion: number | null; strategyVersion: string | null } | { ok: false; error: string; stale: boolean }
   >;
 }
 
@@ -215,6 +215,8 @@ export function FeedEditView({
       return;
     }
     setDraftVersion(result.settingsVersion);
+    // The list this save wrote is the draft's own, even when the user typed on while it saved.
+    setDraftStrategyVersion(result.strategyVersion);
     setSavedDraft(draft);
     setSaveState('saved');
   };

@@ -612,6 +612,39 @@ async function main(): Promise<void> {
     return { nextRunAt: fourth.nextRunAt, inbox: ids.length };
   });
 
+  await scenario('r3. three runs late yesterday leave this morning\'s runs open; a run of the last day that falls on today in the current timezone counts as today\'s', async () => {
+    const { getLocalDateKey, getStartOfNextLocalDay } = await import('../../src/lib/job-feed/helpers');
+    const timeZone = 'Europe/Berlin';
+    const now = new Date();
+    // Stored under another date (as a run under another timezone would be), but completed a moment ago: today's here.
+    await run("UPDATE job_feed_runs SET local_date = '2000-01-01', completed_at = ? WHERE user_id = ?", new Date(now.getTime() - 1000).toISOString(), runsUser);
+    const shifted = await queueFeedRun(runsUser);
+    assert.equal(shifted.started, false, 'a timezone change opens no more runs today');
+    assert.equal(shifted.runsLeftToday, 0);
+
+    // The same three runs at the end of yesterday, all inside the last 24 hours.
+    const startOfToday = getStartOfNextLocalDay(new Date(now.getTime() - 24 * 60 * 60 * 1000), timeZone);
+    const yesterdayKey = getLocalDateKey(new Date(startOfToday.getTime() - 60_000), timeZone);
+    await run(
+      "UPDATE job_feed_runs SET local_date = ?, completed_at = strftime('%Y-%m-%dT%H:%M:%fZ', ?, '-' || (3 - run_slot) || ' minutes') WHERE user_id = ?",
+      yesterdayKey,
+      startOfToday.toISOString(),
+      runsUser,
+    );
+    const searchesBefore = serp.calls;
+    const morning = await queueAndRun();
+    assert.ok(morning.started, `this morning's first run starts (got ${JSON.stringify(morning)})`);
+    assert.equal(morning.runSlot, 0);
+    assert.equal(morning.runsPerDay, 3);
+    const plan = await planOf(morning.runId);
+    assert.equal(plan.status, 'completed');
+    assert.ok(serp.calls > searchesBefore, 'it searched');
+    const after = await queueFeedRun(runsUser, { customQueries: null });
+    // The second of today's three is open too; it is left queued, not run.
+    assert.ok(after.started, 'the next of today\'s runs is open');
+    return { yesterdayKey, morningSlot: morning.runSlot, nextStarted: after.started };
+  });
+
   await scenario('e5. an inbox the settings and the tracker empty stays empty: no fallback to the unfiltered run', async () => {
     // Everything still visible for the second user goes into the tracker.
     for (const [title, company] of [['AI Engineer', 'Quiet KG'], ['AI Specialist', 'Quiet KG'], ['AI Engineer', 'Hybrid AG']]) {

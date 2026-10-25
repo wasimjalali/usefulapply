@@ -140,7 +140,12 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         onSavePreferences={async (draft, plan, expectedRevision) => {
           const result = await saveFeedSettings(draft, { confirmedQueries: plan, expectedRevision });
           return result.ok
-            ? { ok: true, settingsVersion: result.data?.revision ?? overview?.settings?.revision ?? null }
+            ? {
+              ok: true,
+              settingsVersion: result.data?.revision ?? overview?.settings?.revision ?? null,
+              // The list this save wrote, loaded by saveFeedSettings before it resolved.
+              strategyVersion: useFeedStore.getState().strategy?.generatedAt ?? null,
+            }
             : { ok: false, error: result.error, stale: result.stale === true };
         }}
       />

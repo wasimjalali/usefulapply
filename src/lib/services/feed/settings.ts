@@ -111,8 +111,9 @@ export async function saveFeedSettings(params: {
 async function restoreSettings(userId: string, previous: JobFeedSettings | null, writtenRevision: number): Promise<void> {
   try {
     if (previous) {
-      // upsertSettings drops the identity and the revision it is handed, and stamps updated_at itself.
-      await upsertSettings(userId, { ...previous }, { expectedRevision: writtenRevision });
+      // Back at the revision the caller read, so its retry is not refused as stale. upsertSettings drops the
+      // identity it is handed and stamps updated_at itself.
+      await upsertSettings(userId, { ...previous }, { expectedRevision: writtenRevision, restoreRevision: previous.revision });
     } else {
       await deleteSettings(userId, writtenRevision);
     }

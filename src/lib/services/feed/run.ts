@@ -185,29 +185,22 @@ async function readRunGate(userId: string): Promise<RunGate> {
     jobFeedRepo.listRunsByDate(userId, todayKey),
     jobFeedRepo.listRunsCompletedSince(userId, new Date(now.getTime() - DAY_MS).toISOString()),
   ]);
-  const completedRunIds = new Set(todaysRuns.filter((run) => run.status === 'completed').map((run) => run.id));
+  // Today's completed runs: those stored under today's date, and those of the last day that fall on today in
+  // the current timezone, so a timezone change never opens another day's runs.
+  const completedRunIds = new Set([
+    ...todaysRuns.filter((run) => run.status === 'completed').map((run) => run.id),
+    ...lastDay.filter((run) => getLocalDateKey(new Date(run.completed_at as string), timeZone) === todayKey).map((run) => run.id),
+  ]);
   const latestToday = todaysRuns[0] ?? null;
   const open = { blocked: false, nextRunAt: null, remainingMs: 0, forceRerun: false };
-  // Also never more than the plan's runs in any 24 hours: a timezone change must not open another day's runs.
-  if (lastDay.length >= runsPerDay) {
-    const nextRunAt = new Date(Date.parse(lastDay[lastDay.length - runsPerDay].completed_at as string) + DAY_MS);
-    return {
-      timeZone,
-      now,
-      latestManualRun,
-      cooldown: { blocked: true, nextRunAt: nextRunAt.toISOString(), remainingMs: Math.max(0, nextRunAt.getTime() - now.getTime()), forceRerun: false },
-      runsPerDay,
-      runsLeftToday: 0,
-      completedRunIds,
-    };
-  }
-  const runsLeftToday = Math.max(0, Math.min(runsPerDay - completedRunIds.size, runsPerDay - lastDay.length));
-  if (latestToday?.status !== 'completed') {
-    // Nothing today yet, or today's latest run is queued, running or failed: the workflow takes it from there.
+  const runsLeftToday = Math.max(0, runsPerDay - completedRunIds.size);
+  if (latestToday && latestToday.status !== 'completed') {
+    // Today's latest run is queued, running or failed: the workflow takes it from there.
     return { timeZone, now, latestManualRun, cooldown: open, runsPerDay, runsLeftToday, completedRunIds };
   }
   if (runsLeftToday > 0) {
-    return { timeZone, now, latestManualRun, cooldown: open, runsPerDay, runsLeftToday, completedRunIds, nextRunSlot: latestToday.run_slot + 1 };
+    // Nothing stored under today yet starts slot 0; otherwise the slot after today's latest.
+    return { timeZone, now, latestManualRun, cooldown: open, runsPerDay, runsLeftToday, completedRunIds, nextRunSlot: latestToday ? latestToday.run_slot + 1 : undefined };
   }
   const nextRunAt = getStartOfNextLocalDay(now, timeZone);
   return {
@@ -312,15 +305,15 @@ export async function queueFeedRun(
     // The rerun searches what this call asked for: an agent's own queries, or the saved list.
     const customQueries = options.customQueries ?? null;
     const metadata = run.metadata && typeof run.metadata === 'object' && !Array.isArray(run.metadata) ? run.metadata : {};
-    if (customQueries || 'custom_queries' in metadata) {
-      run = await jobFeedRepo.updateRun(userId, run.id, {
-        metadata: { ...metadata, custom_queries: customQueries ? (customQueries as unknown as Json) : null },
-      });
-    }
-    const requeued = await jobFeedRepo.requeueRun(userId, run.id, {
-      status: run.status as 'completed',
-      updatedAt: run.updated_at,
-    });
+    // Written by the same guarded update as the requeue, so a caller that loses never changes the run.
+    const requeued = await jobFeedRepo.requeueRun(
+      userId,
+      run.id,
+      { status: run.status as 'completed', updatedAt: run.updated_at },
+      customQueries || 'custom_queries' in metadata
+        ? { ...metadata, custom_queries: customQueries ? (customQueries as unknown as Json) : null }
+        : undefined,
+    );
     if (requeued) {
       run = requeued;
       queuedNow = true;

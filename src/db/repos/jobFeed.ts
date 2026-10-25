@@ -40,20 +40,25 @@ export async function getSettings(userId: string): Promise<JobFeedSettings | nul
 export async function upsertSettings(
   userId: string,
   values: Record<string, unknown> & { user_id: string },
-  options: { expectedRevision?: number } = {},
+  /**
+   * `restoreRevision`: put the row back at this revision instead of moving it on. Only for undoing a save
+   * that wrote `expectedRevision` with the whole row as it was at `restoreRevision`, so a reader still at
+   * that revision holds exactly what the row holds again.
+   */
+  options: { expectedRevision?: number; restoreRevision?: number } = {},
 ): Promise<JobFeedSettings> {
   const db = await getDb();
   const now = nowIso();
   const existing = await getSettings(userId);
   const safe = stripIdentity(values);
   delete safe.revision;
-  const { expectedRevision } = options;
+  const { expectedRevision, restoreRevision } = options;
   if (existing) {
     const conditions = [eq(jobFeedSettings.user_id, userId)];
     if (expectedRevision !== undefined) conditions.push(eq(jobFeedSettings.revision, expectedRevision));
     const updated = await db
       .update(jobFeedSettings)
-      .set({ ...safe, revision: sql`${jobFeedSettings.revision} + 1`, updated_at: now } as never)
+      .set({ ...safe, revision: restoreRevision ?? sql`${jobFeedSettings.revision} + 1`, updated_at: now } as never)
       .where(and(...conditions))
       .returning({ revision: jobFeedSettings.revision });
     if (updated.length === 0) {
@@ -277,11 +282,13 @@ export async function requeueRun(
   userId: string,
   runId: string,
   expected: { status: 'failed' | 'running' | 'completed'; updatedAt: string },
+  /** New metadata for the run, written in the same guarded update. */
+  metadata?: JobFeedRun['metadata'],
 ): Promise<JobFeedRun | null> {
   const db = await getDb();
   const rows = await db
     .update(jobFeedRuns)
-    .set({ status: 'queued', error_message: null, completed_at: null, updated_at: nowIso() })
+    .set({ status: 'queued', error_message: null, completed_at: null, updated_at: nowIso(), ...(metadata !== undefined ? { metadata } : {}) } as never)
     .where(and(
       eq(jobFeedRuns.id, runId),
       eq(jobFeedRuns.user_id, userId),

@@ -375,14 +375,16 @@ const updateFeedSettings = defineTool({
 });
 
 /**
- * The roles sent that none of the saved roles came from. A save splits a composite role ("AI Engineer | PM")
- * into its parts, so a role counts as kept when any of its parts is saved.
+ * The roles sent that were not saved. A save splits a composite role ("AI Engineer | PM") into its parts, so
+ * a composite role reports each part that was left out ("PM" when only "AI Engineer" fit).
  */
 function rolesNotKept(sent: string[], saved: string[]): string[] {
-  const kept = new Set(saved.map((role) => role.trim().toLowerCase()));
-  return sent.filter((role) => {
+  const key = (role: string) => role.trim().toLowerCase().slice(0, 80);
+  const kept = new Set(saved.map(key));
+  return sent.flatMap((role) => {
+    if (kept.has(key(role))) return [];
     const parts = splitCompositeRole(role);
-    return ![role, ...parts].some((part) => kept.has(part.trim().toLowerCase().slice(0, 80)));
+    return parts.length === 0 ? [role] : parts.filter((part) => !kept.has(key(part)));
   });
 }
 
@@ -537,12 +539,12 @@ const regenerateCareerProfile = defineTool({
   name: 'regenerate_career_profile',
   title: 'Regenerate career profile',
   description:
-    "Reads the user's primary CV again and replaces the career profile the job feed derives from it (titles, seniority estimate, years, skills). Costs no credits. A profile read in the last 5 minutes is returned as it is (regenerated false). The feed settings stay as saved: the seniority estimate never overrides the levels in the settings, which update_feed_settings changes.",
+    "Reads the user's primary CV again and replaces the career profile the job feed derives from it (titles, seniority estimate, years, skills). Costs no credits. A changed CV is always read. An unchanged CV read in the last 5 minutes returns the stored profile as it is (regenerated false). The feed settings stay as saved: the seniority estimate never overrides the levels in the settings, which update_feed_settings changes.",
   hints: { readOnly: false, destructive: false, idempotent: false, openWorld: false },
   input: z.object({}),
   output: z.object({
     status: z.enum(['ok', 'no_cv']),
-    /** False when the stored profile was read in the last 5 minutes and is returned as it is. */
+    /** False when the CV is unchanged and was read in the last 5 minutes: the stored profile is returned as it is. */
     regenerated: z.boolean(),
     generatedAt: z.string().nullable(),
     profile: careerProfileSchema.nullable(),

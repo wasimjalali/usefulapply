@@ -67,10 +67,10 @@ export async function enrichJobDescriptions(params: {
       const urls = postingUrlCandidates([...applyOptionLinks(job), job.apply_url, job.source_url]);
       if (urls.length === 0) continue;
       const posting = await readFullPosting({ urls, title: job.title, company: job.company, current: job.description, fetchImpl: params.fetchImpl, deadline });
-      if (!posting) {
-        // Remembered, so the same dead or ad-less page is not fetched again on every run. A fetch the pass
-        // deadline cut short says nothing about the page, so it is not remembered.
-        if (Date.now() >= deadline) continue;
+      if (posting.text === null) {
+        // Remembered, so the same dead or ad-less page is not fetched again on every run. A fetch that may
+        // work next time (a timeout, a 429 or 5xx, the pass deadline) says nothing about the page, so it is not.
+        if (posting.transient || Date.now() >= deadline) continue;
         result[index] = await params.updateJob(job.id, {
           source_identifiers: { ...identifiers(job), posting_page_checked_at: new Date().toISOString() } as JobFeedCanonicalJob['source_identifiers'],
         });
