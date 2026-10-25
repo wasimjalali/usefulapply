@@ -384,6 +384,11 @@ export interface FeedSettingsPatch {
   cities?: string[];
   languages?: string[];
   workAuthorization?: 'authorized' | 'needs_sponsorship' | 'open_to_both' | null;
+  /**
+   * The confirmed search list itself, in run order, replacing the role-by-country list. The roles become
+   * the searches' roles, and a country a search names joins the countries.
+   */
+  searches?: Array<{ query: string; country: string }>;
 }
 
 function sameSet(left: readonly string[], right: readonly string[]): boolean {
@@ -426,6 +431,7 @@ export function changedFeedSettingFields(existing: JobFeedSettings | null, patch
   if (patch.cities && !sameSet(patch.cities, current.target_cities)) changed.push('cities');
   if (patch.languages && !sameSet(patch.languages, current.languages)) changed.push('languages');
   if (patch.workAuthorization !== undefined && patch.workAuthorization !== current.work_authorization_status) changed.push('work authorization');
+  if (patch.searches) changed.push('searches');
   return changed;
 }
 
@@ -482,7 +488,12 @@ export async function updateFeedSettingsPartial(params: {
   let searches: ConfirmedSearchQuery[] | null = null;
   const rolesChanged = rolesWouldChange(existing, patch, searchLimit);
   const countriesChanged = Boolean(patch.countries) && !sameSet(patch.countries ?? [], base.target_countries);
-  if (rolesChanged || countriesChanged) {
+  if (patch.searches) {
+    const plan = patch.searches.map((row) => ({ query: row.query, targetCountry: row.country }));
+    searches = plan;
+    body.confirmed_queries = plan;
+    body.target_countries = [...new Set([...(patch.countries ?? base.target_countries), ...plan.map((row) => row.targetCountry)])];
+  } else if (rolesChanged || countriesChanged) {
     const plan = buildConfirmSearchPlan({
       roles: patch.roles ?? existing?.target_roles ?? [],
       countries: patch.countries ?? base.target_countries,

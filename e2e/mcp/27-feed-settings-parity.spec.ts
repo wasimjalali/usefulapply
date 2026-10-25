@@ -178,6 +178,66 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
     expect((await agent.ok<SettingsRead>('get_feed_settings')).revision).toBe(current.revision);
   });
 
+  test('update_feed_searches sets the search list the editor shows, and a list over the limit is refused', async ({}, testInfo) => {
+    const before = await agent.ok<SettingsRead>('get_feed_settings');
+    const saved = await agent.ok<{ revision: number; searches: Array<{ query: string; country: string }>; roles: string[]; countries: string[]; searchLimit: number }>('update_feed_searches', {
+      revision: before.revision,
+      searches: [
+        { query: 'Applied AI Engineer', country: 'de' },
+        { query: 'KI-Ingenieur', country: 'de' },
+        { query: 'AI Automation Engineer', country: 'nl' },
+      ],
+    });
+    expect(saved.searches).toEqual([
+      { query: 'Applied AI Engineer', country: 'de' },
+      { query: 'KI-Ingenieur', country: 'de' },
+      { query: 'AI Automation Engineer', country: 'nl' },
+    ]);
+    expect(saved.roles).toEqual(['Applied AI Engineer', 'KI-Ingenieur', 'AI Automation Engineer']);
+    expect(saved.countries).toEqual(expect.arrayContaining(['de', 'nl']));
+
+    const career = await agent.ok<{ searchStrategy: { userConfirmed: boolean; queries: Array<{ query: string; targetCountry: string }> } }>('get_career_profile');
+    expect(career.searchStrategy.userConfirmed).toBe(true);
+    expect(career.searchStrategy.queries.map((query) => `${query.query}|${query.targetCountry}`)).toEqual(['Applied AI Engineer|de', 'KI-Ingenieur|de', 'AI Automation Engineer|nl']);
+
+    const page = await context.newPage();
+    await openEditor(page);
+    for (const query of ['Applied AI Engineer', 'KI-Ingenieur', 'AI Automation Engineer']) {
+      await expect(page.getByDisplayValue(query, { exact: true })).toHaveCount(1);
+    }
+    await page.screenshot({ path: testInfo.outputPath('5-searches-from-mcp.png'), fullPage: true });
+    await page.close();
+
+    const tooMany = Array.from({ length: saved.searchLimit + 1 }, (_, index) => ({ query: `Role ${index + 1}`, country: 'de' }));
+    expect(await agent.fails('update_feed_searches', { revision: saved.revision, searches: tooMany })).toMatch(new RegExp(`more than ${saved.searchLimit} searches`));
+  });
+
+  test('regenerate_career_profile reads the CV again and leaves the settings\' seniority alone; the editor button does the same', async () => {
+    const before = await agent.ok<SettingsRead>('get_feed_settings');
+    // The stored profile is the seeded one, "senior". The CV on file reads as mid on the scripted model.
+    const regenerated = await agent.ok<{ status: string; profile: { seniority: { level: string } } | null }>('regenerate_career_profile');
+    expect(regenerated.status).toBe('ok');
+    expect(regenerated.profile?.seniority.level).toBe('mid');
+    const career = await agent.ok<{ status: string; cvNewerThanProfile: boolean; profile: { seniority: { level: string } } }>('get_career_profile');
+    expect(career).toMatchObject({ status: 'ok', cvNewerThanProfile: false, profile: { seniority: { level: 'mid' } } });
+    // The settings are the user's: unchanged, revision included.
+    const after = await agent.ok<SettingsRead>('get_feed_settings');
+    expect(after.revision).toBe(before.revision);
+    expect(after.settings.seniority).toEqual(before.settings.seniority);
+
+    const page = await context.newPage();
+    await openEditor(page);
+    const reread = page.getByRole('button', { name: 'Read my CV again' });
+    const posted = page.waitForResponse((response) => response.url().endsWith('/api/job-feed/career-profile') && response.request().method() === 'POST');
+    await reread.click();
+    const response = await posted;
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toMatchObject({ status: 'ok', regenerated: true });
+    await expect(reread).toBeEnabled();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await page.close();
+  });
+
   test('an agent sending an old revision is refused and nothing changes', async () => {
     const current = await agent.ok<SettingsRead>('get_feed_settings');
     const refused = await agent.fails('update_feed_settings', { revision: current.revision - 1, salaryFloor: 1 });

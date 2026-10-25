@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Check, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Check, Loader2, RefreshCw, X } from 'lucide-react';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import type { SearchStrategy } from '@/lib/job-feed/search-strategy-types';
 import type { JobFeedOverviewResponse, JobFeedSettingsInput } from '@/lib/job-feed/types';
@@ -36,6 +36,8 @@ interface FeedEditViewProps {
   pill: FeedEditPill;
   onPillChange: (pill: FeedEditPill) => void;
   onBack: () => void;
+  /** Read the CV into the profile again. */
+  onRereadCv: () => Promise<{ ok: true } | { ok: false; error: string }>;
   /** `expectedRevision` is the settings revision the draft was made from; a newer saved one refuses the save. */
   onSavePreferences: (draft: JobFeedSettingsInput, plan: ConfirmedSearchQuery[], expectedRevision: number | null) => Promise<
     { ok: true; settingsVersion: number | null } | { ok: false; error: string; stale: boolean }
@@ -87,6 +89,7 @@ export function FeedEditView({
   pill,
   onPillChange,
   onBack,
+  onRereadCv,
   onSavePreferences,
 }: FeedEditViewProps) {
   const datePrefs = useDatePrefs();
@@ -106,6 +109,8 @@ export function FeedEditView({
   /** Shown after a stale save, over the reloaded settings, until the next edit. */
   const [staleNotice, setStaleNotice] = useState('');
   const [draftVersion, setDraftVersion] = useState(settingsVersion);
+  const [rereading, setRereading] = useState(false);
+  const [rereadError, setRereadError] = useState('');
   /** Set by a stale save: take in the newer settings even over unsaved edits. */
   const [reloadDraft, setReloadDraft] = useState(false);
 
@@ -492,14 +497,33 @@ export function FeedEditView({
             </section>
 
             <section className="rounded-card border border-border bg-surface px-5 py-5 shadow-resting">
-              <h3 className="text-base font-semibold text-ink">
-                What I read from your CV
-                {profile?.generatedAt && (
-                  <span className="ml-2 text-xs font-normal text-ink-muted">
-                    refreshed {formatDayMonth(new Date(profile.generatedAt), datePrefs)}
-                  </span>
-                )}
-              </h3>
+              <div className="flex flex-wrap items-center gap-3">
+                <h3 className="text-base font-semibold text-ink">
+                  What I read from your CV
+                  {profile?.generatedAt && (
+                    <span className="ml-2 text-xs font-normal text-ink-muted">
+                      refreshed {formatDayMonth(new Date(profile.generatedAt), datePrefs)}
+                    </span>
+                  )}
+                </h3>
+                <div className="flex-1" />
+                <button
+                  type="button"
+                  disabled={rereading}
+                  onClick={async () => {
+                    setRereading(true);
+                    setRereadError('');
+                    const result = await onRereadCv();
+                    setRereading(false);
+                    if (!result.ok) setRereadError(result.error);
+                  }}
+                  className="inline-flex h-9 items-center gap-2 rounded-pill border border-border bg-surface px-3.5 text-sm font-semibold text-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-surface-raised disabled:cursor-wait disabled:text-ink-muted"
+                >
+                  {rereading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  {rereading ? 'Reading your CV' : 'Read my CV again'}
+                </button>
+              </div>
+              {rereadError && <p className="mt-2 text-sm text-danger-strong" role="alert">{rereadError}</p>}
 
               {profile ? (
                 <div className="mt-4 space-y-5">

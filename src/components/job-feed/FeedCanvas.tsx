@@ -11,7 +11,7 @@ import { useCreditsBalance } from '@/hooks/useCreditsBalance';
 import { resolveFeedBuild, useFeedStore } from '@/store/useFeedStore';
 import { openSettings } from '@/store/useSettingsStore';
 import { FeedEditView } from './FeedEditView';
-import { saveFeedSettings } from './feed-actions';
+import { rereadCareerProfile, saveFeedSettings } from './feed-actions';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
 import { FeedJobCard } from './FeedJobCard';
 import { FeedJobDetail } from './FeedJobDetail';
@@ -131,6 +131,10 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         pill={editPill}
         onPillChange={(pill) => useFeedStore.getState().setEditPill(pill)}
         onBack={() => useFeedStore.getState().backToList()}
+        onRereadCv={async () => {
+          const result = await rereadCareerProfile();
+          return result.ok ? { ok: true } : { ok: false, error: result.error };
+        }}
         onSavePreferences={async (draft, plan, expectedRevision) => {
           const result = await saveFeedSettings(draft, { confirmedQueries: plan, expectedRevision });
           return result.ok

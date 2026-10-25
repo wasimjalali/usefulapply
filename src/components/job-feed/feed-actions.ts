@@ -229,6 +229,33 @@ export async function loadCareerProfile(): Promise<CareerProfile | null> {
   }
 }
 
+/** Read the CV into the search profile again, even when the stored one is current. */
+export async function rereadCareerProfile(): Promise<FeedResult<CareerProfile>> {
+  if (isPreviewing()) {
+    const profile = useFeedStore.getState().careerProfile;
+    return profile ? { ok: true, data: profile } : { ok: false, error: 'There is no CV to read yet.' };
+  }
+  const generation = useFeedStore.getState().fetchGeneration;
+  try {
+    const response = await fetch('/api/job-feed/career-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ force: true }),
+    });
+    const payload = await readJson(response);
+    if (isStale(generation)) return { ok: false, error: 'Feed was reset.' };
+    if (!response.ok) return { ok: false, error: humanError(response.status, 'I could not read your CV just now. Try again in a moment.') };
+    if (payload.status === 'no_cv' || !payload.profile) {
+      return { ok: false, error: 'I need your CV first. Upload it on the CV tab.' };
+    }
+    const profile = payload.profile as CareerProfile;
+    useFeedStore.getState().setCareerProfile(profile);
+    return { ok: true, data: profile };
+  } catch {
+    return { ok: false, error: 'I could not read your CV just now. Try again in a moment.' };
+  }
+}
+
 export interface FeedRunOutcome {
   skipped: boolean;
   cooldown: boolean;

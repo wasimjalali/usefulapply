@@ -27,6 +27,7 @@ const DESTRUCTIVE = new Set([
   'edit_document_text',
   'set_cv_template',
   'update_feed_settings',
+  'update_feed_searches',
   'withdraw_feed_consent',
   'update_notification_settings',
 ]);

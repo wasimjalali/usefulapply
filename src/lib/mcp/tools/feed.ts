@@ -27,9 +27,10 @@ import {
   wrapShort,
   wrapUrl,
 } from '@/lib/mcp/tools/shared';
-import { requireFeedViewer } from '@/lib/services/feed/access';
+import { requireFeedEditor, requireFeedViewer } from '@/lib/services/feed/access';
 import { applyToFeedJob } from '@/lib/services/feed/apply';
-import { readCareerProfile, readSearchStrategy } from '@/lib/services/feed/career-profile';
+import { generateCareerProfileForUser, readCareerProfile, readSearchStrategy } from '@/lib/services/feed/career-profile';
+import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import { FeedError } from '@/lib/services/feed/errors';
 import { recordFeedFeedback } from '@/lib/services/feed/feedback';
 import { loadInboxPage, loadSavedJobs } from '@/lib/services/feed/inbox';
@@ -409,32 +410,52 @@ function dedupeCaseless(values: string[]): string[] {
 
 const skillClusterSchema = z.object({ name: z.string(), skills: z.array(z.string()) });
 
+const careerProfileSchema = z.object({
+  function: z.string(),
+  seniority: z.object({ level: z.string(), confidence: z.string() }),
+  yearsTotal: z.number(),
+  yearsInFunction: z.number(),
+  inferredTitles: z.array(z.object({ title: z.string(), confidence: z.string() })),
+  aspirationalTitles: z.array(z.string()),
+  pivot: z.object({ from: z.string(), to: z.string() }).nullable(),
+  primarySkills: z.array(skillClusterSchema),
+  secondarySkills: z.array(skillClusterSchema),
+  industries: z.array(z.string()),
+  tools: z.array(z.string()),
+  workingLanguages: z.array(z.string()),
+  narrative: z.string(),
+});
+
+function toCareerProfileView(profile: CareerProfile): z.infer<typeof careerProfileSchema> {
+  return {
+    function: profile.function,
+    seniority: { level: profile.seniority.level, confidence: profile.seniority.confidence },
+    yearsTotal: profile.yearsTotal,
+    yearsInFunction: profile.yearsInFunction,
+    inferredTitles: profile.inferredTitles.map((title) => ({ title: title.canonical, confidence: title.confidence })),
+    aspirationalTitles: profile.targetDirection.aspirationalTitles,
+    pivot: profile.targetDirection.pivot ? { from: profile.targetDirection.pivot.from, to: profile.targetDirection.pivot.to } : null,
+    primarySkills: profile.primarySkillClusters.map((cluster) => ({ name: cluster.name, skills: cluster.skills })),
+    secondarySkills: profile.secondarySkillClusters.map((cluster) => ({ name: cluster.name, skills: cluster.skills })),
+    industries: profile.industryDomains,
+    tools: profile.toolsEnvironment,
+    workingLanguages: profile.workingLanguages,
+    narrative: profile.narrative,
+  };
+}
+
 const getCareerProfile = defineTool({
   name: 'get_career_profile',
   title: 'Get career profile',
   description:
-    "Returns the career profile the job feed derives from the user's CV (titles, seniority, skills, direction) and the search strategy it currently runs. Never generates either one.",
+    "Returns the career profile the job feed derives from the user's CV (titles, seniority, skills, direction) and the search strategy it currently runs. Never generates either one: regenerate_career_profile reads the CV again, and update_feed_searches changes the searches.",
   hints: READ_HINTS,
   input: z.object({}),
   output: z.object({
     status: z.enum(['ok', 'no_cv', 'no_profile']),
     generatedAt: z.string().nullable(),
     cvNewerThanProfile: z.boolean(),
-    profile: z.object({
-      function: z.string(),
-      seniority: z.object({ level: z.string(), confidence: z.string() }),
-      yearsTotal: z.number(),
-      yearsInFunction: z.number(),
-      inferredTitles: z.array(z.object({ title: z.string(), confidence: z.string() })),
-      aspirationalTitles: z.array(z.string()),
-      pivot: z.object({ from: z.string(), to: z.string() }).nullable(),
-      primarySkills: z.array(skillClusterSchema),
-      secondarySkills: z.array(skillClusterSchema),
-      industries: z.array(z.string()),
-      tools: z.array(z.string()),
-      workingLanguages: z.array(z.string()),
-      narrative: z.string(),
-    }).nullable(),
+    profile: careerProfileSchema.nullable(),
     searchStrategy: z.object({
       status: z.enum(['ok', 'no_profile', 'profile_only', 'no_settings', 'no_countries']),
       generatedAt: z.string().nullable(),
@@ -459,23 +480,7 @@ const getCareerProfile = defineTool({
         status: career.status,
         generatedAt: career.generatedAt,
         cvNewerThanProfile: career.cvNewerThanProfile,
-        profile: profile
-          ? {
-              function: profile.function,
-              seniority: { level: profile.seniority.level, confidence: profile.seniority.confidence },
-              yearsTotal: profile.yearsTotal,
-              yearsInFunction: profile.yearsInFunction,
-              inferredTitles: profile.inferredTitles.map((title) => ({ title: title.canonical, confidence: title.confidence })),
-              aspirationalTitles: profile.targetDirection.aspirationalTitles,
-              pivot: profile.targetDirection.pivot ? { from: profile.targetDirection.pivot.from, to: profile.targetDirection.pivot.to } : null,
-              primarySkills: profile.primarySkillClusters.map((cluster) => ({ name: cluster.name, skills: cluster.skills })),
-              secondarySkills: profile.secondarySkillClusters.map((cluster) => ({ name: cluster.name, skills: cluster.skills })),
-              industries: profile.industryDomains,
-              tools: profile.toolsEnvironment,
-              workingLanguages: profile.workingLanguages,
-              narrative: profile.narrative,
-            }
-          : null,
+        profile: profile ? toCareerProfileView(profile) : null,
         searchStrategy: {
           status: strategy.status,
           generatedAt: strategy.generatedAt,
@@ -489,6 +494,75 @@ const getCareerProfile = defineTool({
           })),
           negativeTerms: strategy.strategy?.negativeTerms ?? [],
         },
+      });
+    });
+  },
+});
+
+// ---------------------------------------------------------------------------
+// regenerate_career_profile, update_feed_searches
+// ---------------------------------------------------------------------------
+
+const regenerateCareerProfile = defineTool({
+  name: 'regenerate_career_profile',
+  title: 'Regenerate career profile',
+  description:
+    "Reads the user's primary CV again and replaces the career profile the job feed derives from it (titles, seniority estimate, years, skills). Costs no credits. The feed settings stay as saved: the seniority estimate never overrides the levels in the settings, which update_feed_settings changes.",
+  hints: { readOnly: false, destructive: false, idempotent: false, openWorld: false },
+  input: z.object({}),
+  output: z.object({
+    status: z.enum(['ok', 'no_cv']),
+    generatedAt: z.string().nullable(),
+    profile: careerProfileSchema.nullable(),
+  }),
+  async run(_args, { userId }) {
+    return feedCall(async () => {
+      await requireFeedEditor(userId);
+      await withinRateLimit(`career-profile-generate:${userId}`, RATE_LIMITS['career-profile-generate']);
+      const result = await generateCareerProfileForUser({ userId, force: true, clientRequestId: null, route: 'mcp:regenerate_career_profile' });
+      if (result.status === 'no_cv' || !result.profile) {
+        return ok({ status: 'no_cv' as const, generatedAt: null, profile: null });
+      }
+      return ok({ status: 'ok' as const, generatedAt: result.generatedAt, profile: toCareerProfileView(result.profile) });
+    });
+  },
+});
+
+const updateFeedSearches = defineTool({
+  name: 'update_feed_searches',
+  title: 'Update feed searches',
+  description:
+    'Replaces the list of searches the job feed runs, in order: each is a role keyword and a country. The roles become the searched roles, and a country a search names joins the countries. Returns the searches saved. get_career_profile shows the current list.',
+  hints: { readOnly: false, destructive: true, idempotent: true, openWorld: false },
+  input: z.object({
+    revision: z.number().int().min(0)
+      .describe('The revision from get_feed_settings. If the settings changed since, nothing is changed and the call fails: read them again and send the new revision.'),
+    searches: z.array(z.object({
+      query: z.string().trim().min(1).max(80).describe('A role keyword, for example "Applied AI Engineer". Use the language ads in that country are written in when it differs.'),
+      country: z.enum(COUNTRY_CODES).describe('Two-letter country code.'),
+    })).min(1).max(50)
+      .describe('The searches, best first. Each run makes a limited number of searches (searchLimit in the result); a longer list is refused.'),
+  }),
+  output: z.object({
+    revision: z.number(),
+    searches: z.array(z.object({ query: z.string(), country: z.string() })),
+    roles: z.array(z.string()),
+    countries: z.array(z.string()),
+    searchLimit: z.number(),
+  }),
+  confirm({ searches }) {
+    return `Replace the feed's searches with these ${searches.length}? The roles saved follow them.`;
+  },
+  async run({ revision, searches }, { userId }) {
+    return feedCall(async () => {
+      await withinRateLimit(`job-feed-settings:${userId}`, RATE_LIMITS['job-feed-settings']);
+      const saved = await updateFeedSettingsPartial({ userId, patch: { searches }, clientRequestId: null, expectedRevision: revision });
+      return ok({
+        revision: saved.settings.revision,
+        searches: (saved.searches ?? []).map((row) => ({ query: row.query, country: row.targetCountry })),
+        roles: saved.settings.target_roles,
+        countries: saved.settings.target_countries,
+        searchLimit: saved.searchLimit,
       });
     });
   },
@@ -750,8 +824,10 @@ export const feedTools: AnyToolDefinition[] = [
   getJobFeed,
   getFeedSettings,
   getCareerProfile,
+  regenerateCareerProfile,
   runJobFeed,
   updateFeedSettings,
+  updateFeedSearches,
   giveJobFeedback,
   withdrawFeedConsentTool,
   applyToFeedJobTool,
