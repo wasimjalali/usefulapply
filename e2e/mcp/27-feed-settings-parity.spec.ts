@@ -30,21 +30,30 @@ interface SettingsRead {
   };
 }
 
-test.describe.serial('feed settings: one revision for the web editor and the MCP', () => {
+/** The feed editor, by the job feed's own link: these accounts have no kit, so the dashboard would open on the guided line. */
+async function openEditor(page: Page): Promise<void> {
+  await page.goto('/dashboard?workspace=job-feed');
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'Edit feed' }).click();
+  await expect(page.getByRole('heading', { name: 'How I search for you' })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByLabel('Salary floor')).toBeVisible();
+}
+
+// Each group has an account of its own: the feed's read routes allow 15 calls a minute per user.
+test.describe.serial('feed settings: a stale editor and seniority, one revision for the web and the MCP', () => {
   let agent: McpSession;
   let user: TestUser;
   let context: BrowserContext;
-  let jobs: SeededFeedJob[];
 
   test.beforeAll(async ({ browser, request }) => {
-    const created = await newAgent(browser, request, 'feed-parity');
+    const created = await newAgent(browser, request, 'feed-parity-a');
     agent = created.session;
     user = created.user;
     context = created.context;
     await agent.ok('save_cv', { target: 'primary', text: PRIMARY_CV });
     setPlan(user.id, 'max');
     seedFeedSettings(user.id);
-    jobs = seedFeedInbox(user.id, [
+    seedFeedInbox(user.id, [
       { title: 'Financial Controller', company: 'Fabrikam', fitLabel: 'strong' },
       { title: 'FP&A Manager', company: 'Contoso', fitLabel: 'good' },
       { title: 'Planning Analyst', company: 'Northwind Foods', fitLabel: 'good' },
@@ -55,15 +64,6 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
     await agent?.close();
     await context?.close();
   });
-
-  async function openEditor(page: Page): Promise<void> {
-    // The job feed by its own link: this account has no kit, so the dashboard would open on the guided line.
-    await page.goto('/dashboard?workspace=job-feed');
-    await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: 'Edit feed' }).click();
-    await expect(page.getByRole('heading', { name: 'How I search for you' })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByLabel('Salary floor')).toBeVisible();
-  }
 
   test('a settings form left open is refused after an agent saved, shows why, and reloads the agent\'s values', async ({}, testInfo) => {
     const page = await context.newPage();
@@ -129,6 +129,33 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
     await expect(page.getByText('Saved.')).toBeVisible();
     expect((await agent.ok<SettingsRead>('get_feed_settings')).settings.seniority).toEqual(['mid']);
     await page.close();
+  });
+});
+
+// Each group has an account of its own: the feed's read routes allow 15 calls a minute per user.
+test.describe.serial('feed settings: every field and the search list, the same in the MCP and the editor', () => {
+  let agent: McpSession;
+  let user: TestUser;
+  let context: BrowserContext;
+
+  test.beforeAll(async ({ browser, request }) => {
+    const created = await newAgent(browser, request, 'feed-parity-b');
+    agent = created.session;
+    user = created.user;
+    context = created.context;
+    await agent.ok('save_cv', { target: 'primary', text: PRIMARY_CV });
+    setPlan(user.id, 'max');
+    seedFeedSettings(user.id);
+    seedFeedInbox(user.id, [
+      { title: 'Financial Controller', company: 'Fabrikam', fitLabel: 'strong' },
+      { title: 'FP&A Manager', company: 'Contoso', fitLabel: 'good' },
+      { title: 'Planning Analyst', company: 'Northwind Foods', fitLabel: 'good' },
+    ]);
+  });
+
+  test.afterAll(async () => {
+    await agent?.close();
+    await context?.close();
   });
 
   test('words to avoid, cities, languages and work authorization set through the MCP read back the same in get_feed_settings and the editor', async ({}, testInfo) => {
@@ -208,6 +235,34 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
     const tooMany = Array.from({ length: saved.searchLimit + 1 }, (_, index) => ({ query: `Role ${index + 1}`, country: 'de' }));
     expect(await agent.fails('update_feed_searches', { revision: saved.revision, searches: tooMany })).toMatch(new RegExp(`more than ${saved.searchLimit} searches`));
   });
+});
+
+// Each group has an account of its own: the feed's read routes allow 15 calls a minute per user.
+test.describe.serial('feed settings: the career profile, dropped roles, feedback reasons and old revisions', () => {
+  let agent: McpSession;
+  let user: TestUser;
+  let context: BrowserContext;
+  let jobs: SeededFeedJob[];
+
+  test.beforeAll(async ({ browser, request }) => {
+    const created = await newAgent(browser, request, 'feed-parity-c');
+    agent = created.session;
+    user = created.user;
+    context = created.context;
+    await agent.ok('save_cv', { target: 'primary', text: PRIMARY_CV });
+    setPlan(user.id, 'max');
+    seedFeedSettings(user.id);
+    jobs = seedFeedInbox(user.id, [
+      { title: 'Financial Controller', company: 'Fabrikam', fitLabel: 'strong' },
+      { title: 'FP&A Manager', company: 'Contoso', fitLabel: 'good' },
+      { title: 'Planning Analyst', company: 'Northwind Foods', fitLabel: 'good' },
+    ]);
+  });
+
+  test.afterAll(async () => {
+    await agent?.close();
+    await context?.close();
+  });
 
   test('regenerate_career_profile reads the CV again and leaves the settings\' seniority alone; the editor button does the same', async () => {
     const before = await agent.ok<SettingsRead>('get_feed_settings');
@@ -231,7 +286,8 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
     expect(response.status()).toBe(200);
     expect(await response.json()).toMatchObject({ status: 'ok', regenerated: true });
     await expect(reread).toBeEnabled();
-    await expect(page.getByRole('alert')).toHaveCount(0);
+    // (Next.js keeps an empty route announcer with the alert role on every page, so look for the button's own error.)
+    await expect(page.getByText(/could not read your CV|need your CV first/)).toHaveCount(0);
     await page.close();
   });
 

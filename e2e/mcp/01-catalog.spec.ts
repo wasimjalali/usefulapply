@@ -48,15 +48,15 @@ test.describe.serial('tool catalog', () => {
     await session?.close();
   });
 
-  test('tools/list is exactly the catalog, 43 tools, with the scope split the PLAN table lists', async () => {
+  test('tools/list is exactly the catalog, 45 tools, with the scope split the PLAN table lists', async () => {
     const client = await session.connect();
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name).sort();
     expect(names).toEqual(Object.keys(TOOL_SCOPES).sort());
-    // The PLAN prose says 44 tools and 25 free writes; its table lists 24 free writes (13 + 6 + 24 = 43).
-    expect(names).toHaveLength(43);
+    // 13 reads, 6 spends and 26 free writes, regenerate_career_profile and update_feed_searches included (13 + 6 + 26 = 45).
+    expect(names).toHaveLength(45);
     const byScope = (scope: string) => Object.entries(TOOL_SCOPES).filter(([, value]) => value === scope).length;
-    expect({ read: byScope('read'), spend: byScope('spend'), write: byScope('write') }).toEqual({ read: 13, spend: 6, write: 24 });
+    expect({ read: byScope('read'), spend: byScope('spend'), write: byScope('write') }).toEqual({ read: 13, spend: 6, write: 26 });
   });
 
   test('every tool sets title and all four annotations as booleans, and hints follow the PLAN table', async () => {
