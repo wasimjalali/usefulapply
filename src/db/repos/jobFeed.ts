@@ -138,14 +138,27 @@ export async function getRun(userId: string, runId: string): Promise<JobFeedRun 
   return (rows[0] as JobFeedRun | undefined) ?? null;
 }
 
+/** The latest run of a local day: the highest slot. */
 export async function getRunByDate(userId: string, localDate: string): Promise<JobFeedRun | null> {
   const db = await getDb();
   const rows = await db
     .select()
     .from(jobFeedRuns)
     .where(and(eq(jobFeedRuns.user_id, userId), eq(jobFeedRuns.local_date, localDate)))
+    .orderBy(desc(jobFeedRuns.run_slot))
     .limit(1);
   return (rows[0] as JobFeedRun | undefined) ?? null;
+}
+
+/** Every run of a local day, latest slot first. */
+export async function listRunsByDate(userId: string, localDate: string): Promise<JobFeedRun[]> {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(jobFeedRuns)
+    .where(and(eq(jobFeedRuns.user_id, userId), eq(jobFeedRuns.local_date, localDate)))
+    .orderBy(desc(jobFeedRuns.run_slot));
+  return rows as JobFeedRun[];
 }
 
 export async function getLatestCompletedRun(userId: string): Promise<JobFeedRun | null> {
@@ -178,6 +191,7 @@ export async function getLatestManualCompletedRun(userId: string): Promise<JobFe
 
 export async function insertRun(userId: string, insert: {
   local_date: string;
+  run_slot?: number;
   local_timezone: string;
   trigger_source: string;
   idempotency_key: string;

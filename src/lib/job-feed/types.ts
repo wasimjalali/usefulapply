@@ -52,6 +52,9 @@ export interface JobFeedOverviewResponse {
   // "Run for today" 24h cooldown considers. Preview mode's fake run sits
   // outside that list so it never locks the button.
   latestManualRun: JobFeedRun | null;
+  /** Runs the plan still allows today (the run gate's count), and the plan's runs a day. */
+  runsLeftToday?: number;
+  runsPerDay?: number;
   feedRun: JobFeedRun | null;
   latestRunDiagnostics: JobFeedRunDiagnostics | null;
   // First page of the 7-day inbox (JOB_FEED_VISIBLE_DEFAULT_COUNT items).

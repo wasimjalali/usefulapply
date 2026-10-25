@@ -210,6 +210,11 @@ export function buildJobFeedSearchPlanFromStrategy(
   strategy: SearchStrategy,
   settings: JobFeedSettings,
   maxQueries: number = JOB_FEED_MAX_DAILY_QUERIES,
+  /**
+   * Where in the strategy this run starts: a later run of the day takes the next slice, wrapping to the
+   * start, so it searches other queries (or, with a short list, the same ones for what was posted since).
+   */
+  queryOffset = 0,
 ): JobFeedSearchPlanItem[] {
   if (maxQueries <= 0 || strategy.queries.length === 0) return [];
 
@@ -219,10 +224,12 @@ export function buildJobFeedSearchPlanFromStrategy(
     [...new Set(strategy.queries.map((q) => q.targetCountry.toLowerCase()))],
   );
 
-  // Take the first maxQueries entries in strategy order. The strategy was
-  // generated with priority ordering as a hard rule, so a clean prefix
-  // gives us the model's "best within budget" pick.
-  const selected = strategy.queries.slice(0, maxQueries);
+  // Take maxQueries entries in strategy order from the run's offset. The strategy was
+  // generated with priority ordering as a hard rule, so the first run of the day gets
+  // the model's "best within budget" pick and later runs work down the list.
+  const count = Math.min(maxQueries, strategy.queries.length);
+  const start = queryOffset % strategy.queries.length;
+  const selected = Array.from({ length: count }, (_, index) => strategy.queries[(start + index) % strategy.queries.length]);
 
   const plan: JobFeedSearchPlanItem[] = selected.map((entry, index) => {
     const country = entry.targetCountry.toLowerCase();
@@ -371,10 +378,12 @@ export async function ingestJobFeedRunJobs(params: {
    * `target_roles × target_countries` planner.
    */
   strategy?: SearchStrategy | null;
+  /** Where in the strategy this run's searches start (a later run of the day). */
+  queryOffset?: number;
 }): Promise<JobFeedIngestionResult> {
   const {
     runId, userId, settings, maxQueries, maxMainQueries,
-    maxRawJobs = JOB_FEED_MAX_RAW_JOBS_PER_RUN, strategy = null,
+    maxRawJobs = JOB_FEED_MAX_RAW_JOBS_PER_RUN, strategy = null, queryOffset = 0,
   } = params;
   const planQueryCap = maxMainQueries ?? maxQueries;
   // Leftover argument: helpers used to take a Supabase admin client. Writes
@@ -382,7 +391,7 @@ export async function ingestJobFeedRunJobs(params: {
   const admin = null;
 
   const searchPlan = strategy
-    ? buildJobFeedSearchPlanFromStrategy(strategy, settings, planQueryCap)
+    ? buildJobFeedSearchPlanFromStrategy(strategy, settings, planQueryCap, queryOffset)
     : buildJobFeedSearchPlan(settings, planQueryCap);
 
   // Apply the cached "Past week" date_posted filter to every plan item in

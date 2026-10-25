@@ -221,6 +221,21 @@ function html(body: string): Response {
 const serp = { calls: 0 };
 /** What the next searches return, one list per search; a search past the end returns nothing. */
 let serpQueue: unknown[][] = [];
+let serpPerQuery = false;
+
+function perQueryJobs(query: string) {
+  return Array.from({ length: 3 }, (_, i) => ({
+    job_id: `${query}-${i}`,
+    title: `${query} ${i + 1}`,
+    company_name: `${query} Co ${i + 1}`,
+    location: 'Berlin',
+    via: 'Stub Board',
+    share_link: `https://www.google.de/search?ibp=htl;jobs&q=${encodeURIComponent(query)}&htidocid=${i}`,
+    description: filterAd(`${query} Co ${i + 1}`, 'Hybrid in Berlin.'),
+    detected_extensions: { posted_at: '1 day ago', schedule_type: 'Full-time' },
+    apply_options: [{ title: 'Stub Board', link: `https://jobs.slot-${i}.de/${encodeURIComponent(query)}` }],
+  }));
+}
 const pageRequests: string[] = [];
 const strayRequests: string[] = [];
 const realFetch = globalThis.fetch;
@@ -230,8 +245,10 @@ globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters
   const host = new URL(url).hostname;
   if (host === 'serpapi.com') {
     serp.calls += 1;
-    // A run's first search returns its ads; the run's other searches return nothing new.
-    const jobs = serpQueue.shift() ?? [];
+    // A run's first search returns its ads; the run's other searches return nothing new. In per-query mode
+    // every search returns three ads of its own, named after its query.
+    const query = new URL(url).searchParams.get('q') ?? '';
+    const jobs = serpPerQuery ? perQueryJobs(query) : serpQueue.shift() ?? [];
     return new Response(JSON.stringify({ jobs_results: jobs }), { status: 200, headers: { 'content-type': 'application/json' } });
   }
   if (host === '127.0.0.1' || host === 'localhost') return realFetch(input, init);
@@ -518,6 +535,73 @@ async function main(): Promise<void> {
     assert.ok(!companies.includes('Fresh GmbH'), 'the job applied to elsewhere is hidden');
     assert.ok(!companies.includes('Remote Co'), 'the remote job is hidden once remote is left out');
     return { companies };
+  });
+
+  // Runs a day on Max: three, each from its own slice of a twelve-search list, the last with an agent's own queries.
+  const runsUser = await seedMaxUser('runs');
+  serpPerQuery = true;
+  const { queueFeedRun } = await import('../../src/lib/services/feed/run');
+  const { updateFeedSettingsPartial } = await import('../../src/lib/services/feed/settings');
+  const settingsRow = await one('SELECT revision FROM job_feed_settings WHERE user_id = ?', runsUser);
+  const listed = Array.from({ length: 12 }, (_, i) => ({ query: `Search ${String(i + 1).padStart(2, '0')}`, country: 'de' }));
+  await updateFeedSettingsPartial({ userId: runsUser, patch: { searches: listed }, clientRequestId: null, expectedRevision: Number(settingsRow.revision) });
+  /** Queue a run the way run_job_feed does, then let the consumer run it. */
+  const queueAndRun = async (customQueries?: Array<{ query: string; targetCountry: string }>) => {
+    const queued = await queueFeedRun(runsUser, { customQueries: customQueries ?? null });
+    if (queued.started && queued.runId) {
+      await feedServer.runJobFeedFoundationWorkflow({ userId: runsUser, runId: queued.runId, orchestrator: 'queue' });
+    }
+    return queued;
+  };
+  const planOf = async (runId: string | null) => {
+    const row = await one('SELECT run_slot, status, metadata FROM job_feed_runs WHERE id = ?', runId);
+    const metadata = JSON.parse(String(row.metadata)) as { search_plan?: Array<{ query: string; isFallbackRetry?: boolean }> };
+    return { slot: Number(row.run_slot), status: String(row.status), queries: (metadata.search_plan ?? []).filter((item) => !item.isFallbackRetry).map((item) => item.query) };
+  };
+
+  await scenario('r1. Max runs three times a day, each run searching the next slice of the list, the third an agent\'s own queries', async () => {
+    const first = await queueAndRun();
+    assert.ok(first.started && first.runSlot === 0, 'the first run queued in slot 0');
+    const firstPlan = await planOf(first.runId);
+    assert.deepEqual(firstPlan, { slot: 0, status: 'completed', queries: listed.slice(0, 8).map((row) => row.query) });
+    assert.equal(first.runsPerDay, 3);
+
+    const second = await queueAndRun();
+    assert.equal(second.runSlot, 1);
+    const secondPlan = await planOf(second.runId);
+    // Searches 9 to 12, then the list wraps to 1 to 4.
+    assert.deepEqual(secondPlan.queries, [...listed.slice(8, 12), ...listed.slice(0, 4)].map((row) => row.query));
+    assert.equal(secondPlan.status, 'completed');
+
+    const custom = [{ query: 'Prompt Engineer', targetCountry: 'de' }, { query: 'KI-Berater', targetCountry: 'de' }];
+    const third = await queueAndRun(custom);
+    assert.equal(third.runSlot, 2);
+    const thirdPlan = await planOf(third.runId);
+    assert.deepEqual(thirdPlan.queries, ['Prompt Engineer', 'KI-Berater'], 'the agent\'s own searches, not the list');
+    assert.equal(third.runsLeftToday, 0);
+    assert.ok(third.nextRunAt, 'the next run waits for tomorrow');
+
+    // The saved list is untouched by the custom run.
+    const strategy = await one('SELECT strategy FROM user_search_strategies WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1', runsUser);
+    assert.equal((JSON.parse(String(strategy.strategy)) as { queries: unknown[] }).queries.length, 12);
+    return { first: firstPlan, second: secondPlan, third: thirdPlan };
+  });
+
+  await scenario('r2. a fourth run that day is refused with the start of tomorrow, and nothing is queued or searched', async () => {
+    const searchesBefore = serp.calls;
+    const fourth = await queueFeedRun(runsUser);
+    assert.equal(fourth.started, false);
+    assert.equal(fourth.alreadyRanToday, true);
+    assert.equal(fourth.runsLeftToday, 0);
+    assert.ok(fourth.nextRunAt && Date.parse(fourth.nextRunAt) > Date.now());
+    const runs = await all('SELECT run_slot, status FROM job_feed_runs WHERE user_id = ? ORDER BY run_slot', runsUser);
+    assert.deepEqual(runs.map((row) => [Number(row.run_slot), row.status]), [[0, 'completed'], [1, 'completed'], [2, 'completed']]);
+    assert.equal(serp.calls, searchesBefore, 'no search');
+    // The inbox holds every run's jobs once.
+    const inbox = await readWholeFeed(runsUser);
+    const ids = inbox.items.map((item) => item.jobId);
+    assert.equal(new Set(ids).size, ids.length, 'no job twice');
+    return { nextRunAt: fourth.nextRunAt, inbox: ids.length };
   });
 
   await scenario('d9. nothing left the machine except the stubbed SerpAPI calls and the stubbed employer pages', async () => {

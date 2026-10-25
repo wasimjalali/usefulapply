@@ -907,6 +907,8 @@ export const jobFeedRuns = sqliteTable(
       .notNull()
       .references(() => profiles.id, { onDelete: 'cascade' }),
     local_date: text('local_date').notNull(),
+    /** Which run of the local day this is, from 0 (migration 0018). */
+    run_slot: integer('run_slot').notNull().default(0),
     local_timezone: text('local_timezone').notNull(),
     trigger_source: text('trigger_source').notNull().default('scheduled'),
     status: text('status').notNull().default('queued'),
@@ -924,7 +926,7 @@ export const jobFeedRuns = sqliteTable(
     updated_at: text('updated_at').notNull().$defaultFn(isoNow),
   },
   (t) => [
-    uniqueIndex('job_feed_runs_user_local_date_uidx').on(t.user_id, t.local_date),
+    uniqueIndex('job_feed_runs_user_local_date_slot_uidx').on(t.user_id, t.local_date, t.run_slot),
     uniqueIndex('job_feed_runs_idempotency_uidx').on(t.idempotency_key),
     index('job_feed_runs_user_created_idx').on(t.user_id, t.created_at),
     check('job_feed_runs_status_check', sql`${t.status} in ('queued', 'running', 'completed', 'failed', 'skipped')`),

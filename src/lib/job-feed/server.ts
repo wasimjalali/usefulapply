@@ -47,7 +47,9 @@ import {
   type SearchStrategy,
 } from '@/lib/job-feed/search-strategy';
 import {
+  buildUserConfirmedStrategy,
   shouldReuseUserConfirmedStrategy,
+  type ConfirmedSearchQuery,
 } from '@/lib/job-feed/search-plan';
 import { generateCareerProfile } from '@/lib/job-feed/career-profile-synthesis';
 import { enrichJobDescriptions } from '@/lib/job-feed/enrich-descriptions';
@@ -1284,6 +1286,11 @@ export async function runJobFeedFoundationWorkflow(params: {
    * finished or failed is never run again by a redelivered message.
    */
   runId?: string;
+  /**
+   * Set by the run gate when the plan allows another run today and today's latest run completed: the run
+   * goes in this slot instead of being skipped as already done.
+   */
+  nextRunSlot?: number;
 }): Promise<JobFeedRunWorkflowResult> {
   const {
     userId,
@@ -1362,7 +1369,13 @@ export async function runJobFeedFoundationWorkflow(params: {
     return { run: targetRun, created: false, skipped: true };
   }
   const localDate = targetRun?.local_date ?? getLocalDateKey(now, localTimeZone);
-  const existingRun = targetRun ?? await getJobFeedRunByDate(userId, localDate);
+  const latestToday = targetRun ?? await getJobFeedRunByDate(userId, localDate);
+  // Another run of the day: today's latest is done and the gate opened the next slot.
+  const startsNewSlot = !targetRun
+    && params.nextRunSlot !== undefined
+    && latestToday?.status === 'completed'
+    && latestToday.run_slot < params.nextRunSlot;
+  const existingRun = startsNewSlot ? null : latestToday;
 
   if (existingRun?.status === 'completed' && !force) {
     captureJobFeedRunIdempotencyConflict({
@@ -1425,6 +1438,7 @@ export async function runJobFeedFoundationWorkflow(params: {
         settings,
         triggerSource,
         orchestrator,
+        runSlot: startsNewSlot ? params.nextRunSlot : 0,
       });
 
   // Another request created today's row between our read and our insert. The
@@ -1532,15 +1546,19 @@ export async function runJobFeedFoundationWorkflow(params: {
       jobFeedRunId: run.id,
       operation: 'career_profile_synthesis',
     });
-    const searchStrategy = await loadOrGenerateSearchStrategyAdmin({
-      userId,
-      settings,
-      profile: careerProfileForStrategy,
-      generationContext: {
-        ...workflowGenerationContext,
-        jobFeedRunId: run.id,
-      },
-    });
+    // A run an agent started with its own searches (run_job_feed with queries) runs exactly those.
+    const customQueries = readCustomQueries(run.metadata);
+    const searchStrategy = customQueries
+      ? buildUserConfirmedStrategy({ queries: customQueries, sourceProfileGeneratedAt: careerProfileForStrategy?.generatedAt ?? null })
+      : await loadOrGenerateSearchStrategyAdmin({
+          userId,
+          settings,
+          profile: careerProfileForStrategy,
+          generationContext: {
+            ...workflowGenerationContext,
+            jobFeedRunId: run.id,
+          },
+        });
 
     const ingestion = await ingestJobFeedRunJobs({
       runId: run.id,
@@ -1550,6 +1568,8 @@ export async function runJobFeedFoundationWorkflow(params: {
       maxMainQueries: tierLimits.maxMainQueries,
       maxRawJobs: tierLimits.maxRawJobsPerRun,
       strategy: searchStrategy,
+      // The day's later runs start further down the search list.
+      queryOffset: customQueries ? 0 : run.run_slot * tierLimits.maxMainQueries,
     });
 
     if (ingestion.rawJobsFetched === 0 && ingestion.failedFetches.length === ingestion.searchPlan.length && ingestion.searchPlan.length > 0) {
@@ -1713,8 +1733,12 @@ export async function queueJobFeedRunAdmin(params: {
   userId: string;
   now?: Date;
   triggerSource?: string;
+  /** The slot the run gate opened: today's latest run completed and the plan allows another. */
+  nextRunSlot?: number;
+  /** An agent's own searches for the run it queues now. */
+  customQueries?: ConfirmedSearchQuery[] | null;
 }): Promise<{ run: JobFeedRun; queuedNow: boolean; dispatch: boolean }> {
-  const { userId, now = new Date(), triggerSource = 'manual_user' } = params;
+  const { userId, now = new Date(), triggerSource = 'manual_user', nextRunSlot, customQueries = null } = params;
   const settings = await getJobFeedSettingsAdmin(userId);
   if (!settings) {
     throw new Error('Job feed settings were not found for this user.');
@@ -1725,8 +1749,17 @@ export async function queueJobFeedRunAdmin(params: {
   const localDate = getLocalDateKey(now, localTimeZone);
 
   let run = await getJobFeedRunByDate(userId, localDate);
-  if (!run) {
-    const creation = await createJobFeedRunForToday({ userId, localDate, settings, triggerSource, orchestrator: 'queue' });
+  const startsNewSlot = nextRunSlot !== undefined && run?.status === 'completed' && run.run_slot < nextRunSlot;
+  if (!run || startsNewSlot) {
+    const creation = await createJobFeedRunForToday({
+      userId,
+      localDate,
+      settings,
+      triggerSource,
+      orchestrator: 'queue',
+      runSlot: startsNewSlot ? nextRunSlot : 0,
+      customQueries,
+    });
     // The row this call inserted is queued. One that lost the insert race is the winner's, judged below.
     if (!creation.raced) return { run: creation.run, queuedNow: true, dispatch: true };
     run = creation.run;
@@ -1741,7 +1774,13 @@ export async function queueJobFeedRunAdmin(params: {
     return { run, queuedNow: false, dispatch: false };
   }
 
-  // A failed run is retried and a stalled one is taken over, as the synchronous path does.
+  // A failed run is retried and a stalled one is taken over, as the synchronous path does. The retry
+  // runs the searches asked for now: an agent's own, or the search list.
+  if (customQueries || readCustomQueries(run.metadata)) {
+    run = await updateJobFeedRun(run.id, {
+      metadata: mergeMetadata(run.metadata, { custom_queries: customQueries ? toJson(customQueries) : null }),
+    });
+  }
   captureJobFeedRunIdempotencyConflict({
     userId,
     run,
@@ -1780,34 +1819,52 @@ async function createJobFeedRunForToday(params: {
   settings: JobFeedSettings;
   triggerSource: string;
   orchestrator: JobFeedRunDiagnostics['orchestrator'];
+  /** Which run of the day (0 for the first). */
+  runSlot?: number;
+  /** An agent's own searches for this run, instead of the search list. */
+  customQueries?: ConfirmedSearchQuery[] | null;
 }): Promise<{ run: JobFeedRun; raced: boolean }> {
-  const { userId, localDate, settings, triggerSource, orchestrator } = params;
+  const { userId, localDate, settings, triggerSource, orchestrator, runSlot = 0, customQueries = null } = params;
   try {
     const run = await createJobFeedRun({
       user_id: userId,
       local_date: localDate,
+      run_slot: runSlot,
       local_timezone: isValidTimeZone(settings.user_timezone) ? settings.user_timezone : 'UTC',
       trigger_source: triggerSource,
-      idempotency_key: `${userId}:${localDate}`,
+      // The first run of a day keeps the key it always had.
+      idempotency_key: runSlot === 0 ? `${userId}:${localDate}` : `${userId}:${localDate}:${runSlot}`,
       settings_snapshot: settings as unknown as Json,
       metadata: {
         stage: 'phase_4_ranking',
         foundation_mode: true,
         target_market: settings.target_market,
         orchestrator,
+        ...(customQueries ? { custom_queries: toJson(customQueries) } : {}),
       },
     });
     return { run, raced: false };
   } catch (error) {
     const raced = await getJobFeedRunByDate(userId, localDate);
-    if (raced) return { run: raced, raced: true };
+    if (raced && raced.run_slot >= runSlot) return { run: raced, raced: true };
     throw error;
   }
+}
+
+/** The searches an agent gave a run, when it gave any. */
+function readCustomQueries(metadata: Json | null | undefined): ConfirmedSearchQuery[] | null {
+  if (!metadata || !isJsonRecord(metadata) || !Array.isArray(metadata.custom_queries)) return null;
+  const queries = metadata.custom_queries
+    .filter((row): row is Record<string, Json> => row !== null && isJsonRecord(row))
+    .map((row) => ({ query: String(row.query ?? '').trim(), targetCountry: String(row.targetCountry ?? '').trim().toLowerCase() }))
+    .filter((row) => row.query && row.targetCountry);
+  return queries.length > 0 ? queries : null;
 }
 
 async function createJobFeedRun(insert: {
   user_id: string;
   local_date: string;
+  run_slot: number;
   local_timezone: string;
   trigger_source: string;
   idempotency_key: string;
@@ -1816,6 +1873,7 @@ async function createJobFeedRun(insert: {
 }): Promise<JobFeedRun> {
   return jobFeedRepo.insertRun(insert.user_id, {
     local_date: insert.local_date,
+    run_slot: insert.run_slot,
     local_timezone: insert.local_timezone,
     trigger_source: insert.trigger_source,
     idempotency_key: insert.idempotency_key,

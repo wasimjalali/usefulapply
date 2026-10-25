@@ -229,9 +229,12 @@ export function FeedConversation() {
   const totalCount = overview?.jobsTotalCount ?? 0;
   const feedKey = selectFeedThreadKey({ overview });
   const canRunToday = (() => {
-    const run = overview?.latestManualRun ?? overview?.latestRun ?? null;
+    const latest = overview?.latestRun ?? null;
+    if (latest && (latest.status === 'running' || latest.status === 'queued')) return false;
+    // The server's run gate knows the plan's runs a day; older payloads fall back to one run a day.
+    if (typeof overview?.runsLeftToday === 'number') return overview.runsLeftToday > 0;
+    const run = overview?.latestManualRun ?? latest;
     if (!run) return true;
-    if (run.status === 'running' || run.status === 'queued') return false;
     const timeZone = overview?.settings?.user_timezone || run.local_timezone || 'UTC';
     return run.local_date !== getLocalDateKey(new Date(), timeZone);
   })();

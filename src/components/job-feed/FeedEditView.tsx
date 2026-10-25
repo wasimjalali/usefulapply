@@ -33,6 +33,8 @@ interface FeedEditViewProps {
   strategy: SearchStrategy | null;
   /** How many of the planned queries today's plan actually runs. */
   queryBudget: number;
+  /** How many searches the list may hold: a run's searches times the plan's runs a day. */
+  searchListCap: number;
   pill: FeedEditPill;
   onPillChange: (pill: FeedEditPill) => void;
   onBack: () => void;
@@ -86,6 +88,7 @@ export function FeedEditView({
   profile,
   strategy,
   queryBudget,
+  searchListCap,
   pill,
   onPillChange,
   onBack,
@@ -97,9 +100,9 @@ export function FeedEditView({
   const settingsInput = useMemo(() => settings ? toJobFeedInput(settings) : null, [settings]);
   const nextDraft = useMemo(
     () => settingsInput
-      ? toPreferenceDraft(settingsInput, strategy, queryBudget)
+      ? toPreferenceDraft(settingsInput, strategy, searchListCap)
       : null,
-    [queryBudget, settingsInput, strategy],
+    [searchListCap, settingsInput, strategy],
   );
   const settingsVersion = settings?.revision ?? null;
   const [draft, setDraft] = useState<PreferenceDraft | null>(nextDraft);
@@ -166,7 +169,7 @@ export function FeedEditView({
 
   const savePreferences = async () => {
     if (!draft || !settingsInput || !formValid || saveState === 'saving') return;
-    const checked = validateConfirmedQueries(draft.searchRows, queryBudget);
+    const checked = validateConfirmedQueries(draft.searchRows, searchListCap);
     if (!checked.ok) {
       setSaveState('error');
       setSaveError(checked.error);
@@ -420,7 +423,7 @@ export function FeedEditView({
                           <SearchPlanEditor
                             rows={draft.searchRows}
                             countries={draft.countries}
-                            cap={queryBudget}
+                            cap={searchListCap}
                             disabled={saveState === 'saving'}
                             onChange={(searchRows) => updateDraft({ searchRows })}
                           />
@@ -593,7 +596,7 @@ export function FeedEditView({
               <div className="rounded-card border border-border bg-surface px-4 py-3">
                 <p className="text-sm text-ink-body">
                   {laterQueries.length} more {laterQueries.length === 1 ? 'query is' : 'queries are'} in the plan. Later runs
-                  work down the list, so they come round on other days.
+                  work down the list, so they come round on later runs.
                 </p>
               </div>
             )}

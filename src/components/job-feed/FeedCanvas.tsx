@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { AlertCircle, ArrowUpRight, Briefcase, Check, Loader2, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDatePrefs } from '@/hooks/useDatePrefs';
-import { getJobFeedTierLimits } from '@/lib/job-feed/constants';
+import { getJobFeedTierLimits, searchListCapForTier } from '@/lib/job-feed/constants';
 import { readJobFeedQueryProgress, type JobFeedQueryProgress } from '@/lib/job-feed/types';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { useCreditsBalance } from '@/hooks/useCreditsBalance';
@@ -91,6 +91,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
   // for an empty day, and telling the user "2 searches" when one runs would be
   // a promise the normal day does not keep.
   const queryBudget = getJobFeedTierLimits(tier ?? 'free').maxMainQueries;
+  const searchListCap = searchListCapForTier(tier ?? 'free');
   // The server allows a dismiss on Plus and Max only, so Free never sees the button.
   const canDismiss = (tier === 'plus' || tier === 'max') && !readOnly;
   const canAffordFit = credits === null || credits.total >= CREDIT_COSTS.FIT_ANALYSIS;
@@ -128,6 +129,7 @@ export function FeedCanvas({ readOnly = false }: FeedCanvasProps) {
         profile={careerProfile}
         strategy={strategy}
         queryBudget={queryBudget}
+        searchListCap={searchListCap}
         pill={editPill}
         onPillChange={(pill) => useFeedStore.getState().setEditPill(pill)}
         onBack={() => useFeedStore.getState().backToList()}

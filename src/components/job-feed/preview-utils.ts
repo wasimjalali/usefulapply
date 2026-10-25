@@ -306,6 +306,7 @@ export function buildPreviewJobFeedRun({
     id: `preview-run-${status}`,
     user_id: 'preview-user',
     local_date: localDate,
+    run_slot: 0,
     local_timezone: timeZone,
     // Outside MANUAL_JOB_FEED_TRIGGER_SOURCES on purpose, so a preview run
     // never locks the button for a real account.

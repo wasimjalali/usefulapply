@@ -7,6 +7,7 @@ import {
   JOB_FEED_COUNTRY_OPTIONS,
   countryForCity,
   getJobFeedTierLimits,
+  searchListCapForTier,
 } from '@/lib/job-feed/constants';
 import type { CareerProfile } from '@/lib/job-feed/career-profile';
 import {
@@ -27,6 +28,11 @@ const MAX_QUERY_LENGTH = 80;
 
 export function planCapForTier(subscriptionTier: string | null | undefined): number {
   return getJobFeedTierLimits(subscriptionTier ?? 'plus').maxMainQueries;
+}
+
+/** How many searches the confirmed list may hold: a run's searches times the plan's runs a day. */
+export function searchListCap(subscriptionTier: string | null | undefined): number {
+  return searchListCapForTier(subscriptionTier ?? 'plus');
 }
 
 /** Career-profile titles in stored order. Over-cap callers take the first N. */

@@ -63,7 +63,7 @@ test('cities are optional: empty city list is a valid confirm plan', () => {
 
 test('plan cap is Plus 2 and Max 4', () => {
   assert.equal(planCapForTier('plus'), 2);
-  assert.equal(planCapForTier('max'), 4);
+  assert.equal(planCapForTier('max'), 8);
   assert.equal(planCapForTier('free'), 1);
   const plus = buildConfirmSearchPlan({ roles: ROLES, countries: ['us'], cap: 2 });
   const max = buildConfirmSearchPlan({ roles: ROLES, countries: ['us'], cap: 4 });

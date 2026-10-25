@@ -23,7 +23,7 @@ import type { JobFeedSettingsInput } from '@/lib/job-feed/types';
 import {
   buildConfirmSearchPlan,
   buildUserConfirmedStrategy,
-  planCapForTier,
+  searchListCap,
   resolveSavedTargetRoles,
   rolesFromConfirmedQueries,
   validateConfirmedQueries,
@@ -42,7 +42,7 @@ export interface FeedSettingsView {
   settings: JobFeedSettings | null;
   /** Whether the plan allows changing the settings (Plus and Max). */
   canEdit: boolean;
-  /** How many role-by-country searches the plan keeps. */
+  /** How many searches the confirmed list keeps: a run's searches times the runs a day. */
   searchLimit: number;
 }
 
@@ -57,7 +57,7 @@ export async function loadFeedSettings(userId: string): Promise<FeedSettingsView
   return {
     settings,
     canEdit: ['plus', 'max'].includes(profile.subscription_tier),
-    searchLimit: planCapForTier(profile.subscription_tier),
+    searchLimit: searchListCap(profile.subscription_tier),
   };
 }
 
@@ -177,7 +177,7 @@ async function persistFeedSettings(params: {
     operation: 'career_profile_synthesis',
   });
 
-  const cap = planCapForTier(subscriptionTier);
+  const cap = searchListCap(subscriptionTier);
   const confirmed = 'confirmed_queries' in (body as object)
     ? validateConfirmedQueries((body as { confirmed_queries?: unknown }).confirmed_queries, cap)
     : null;
@@ -484,7 +484,7 @@ export async function updateFeedSettingsPartial(params: {
   if (patch.languages) body.languages = patch.languages;
   if (patch.workAuthorization !== undefined) body.work_authorization_status = patch.workAuthorization;
 
-  const searchLimit = planCapForTier(profile.subscription_tier);
+  const searchLimit = searchListCap(profile.subscription_tier);
   let searches: ConfirmedSearchQuery[] | null = null;
   const rolesChanged = rolesWouldChange(existing, patch, searchLimit);
   const countriesChanged = Boolean(patch.countries) && !sameSet(patch.countries ?? [], base.target_countries);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readRunsLeftToday } from '@/lib/services/feed/run';
 import { getCurrentUser } from '@/auth/server';
 import { canAccessJobFeed, canViewJobFeed, getJobFeedOverviewState, getLocalDateKey } from '@/lib/job-feed/helpers';
 import { getJobFeedTierLimits, JOB_FEED_MIRRORED_ROLE_LIMIT } from '@/lib/job-feed/constants';
@@ -100,6 +101,7 @@ export async function GET(request: NextRequest) {
       }),
       getLatestManualCompletedJobFeedRunAdmin(user.id),
     ]);
+    const runAllowance = await readRunsLeftToday(user.id);
 
     // For free users the visible inbox is capped to tierLimits.visibleCount (5).
     // We slice here rather than in the DB layer to keep server.ts tier-agnostic.
@@ -151,6 +153,8 @@ export async function GET(request: NextRequest) {
       settings: settings ?? null,
       latestRun: latestRun ?? null,
       latestManualRun: latestManualRun ?? null,
+      runsLeftToday: runAllowance.runsLeftToday,
+      runsPerDay: runAllowance.runsPerDay,
       feedRun,
       latestRunDiagnostics: getJobFeedRunDiagnostics(latestRun ?? null),
       jobs,

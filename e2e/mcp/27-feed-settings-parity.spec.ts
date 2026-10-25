@@ -229,6 +229,22 @@ test.describe.serial('feed settings: one revision for the web editor and the MCP
     await page.close();
   });
 
+  test('roles over the search list are named in droppedRoles and a warning, never dropped silently', async () => {
+    const before = await agent.ok<SettingsRead & { settings: { countries: string[] } }>('get_feed_settings');
+    const roles = Array.from({ length: 30 }, (_, index) => `Role ${String(index + 1).padStart(2, '0')}`);
+    const saved = await agent.ok<{ settings: { roles: string[]; countries: string[] }; searchLimit: number; droppedRoles: string[]; warning: string | null }>('update_feed_settings', {
+      revision: before.revision,
+      roles,
+      countries: ['de'],
+    });
+    // Max keeps eight searches a run for three runs a day: a list of 24.
+    expect(saved.searchLimit).toBe(24);
+    expect(saved.settings.roles).toEqual(roles.slice(0, 24));
+    expect(saved.droppedRoles).toEqual(roles.slice(24));
+    expect(saved.warning).toContain('6 of the roles sent did not fit');
+    expect(saved.warning).toContain('Role 25');
+  });
+
   test('an agent sending an old revision is refused and nothing changes', async () => {
     const current = await agent.ok<SettingsRead>('get_feed_settings');
     const refused = await agent.fails('update_feed_settings', { revision: current.revision - 1, salaryFloor: 1 });

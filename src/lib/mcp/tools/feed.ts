@@ -9,6 +9,8 @@ import {
   JOB_FEED_EMPLOYMENT_TYPE_OPTIONS,
   JOB_FEED_REMOTE_PREFERENCE_OPTIONS,
   JOB_FEED_SENIORITY_OPTIONS,
+  JOB_FEED_TIER_LIMITS,
+  getJobFeedTierLimits,
 } from '@/lib/job-feed/constants';
 import { toJobFeedInput } from '@/lib/job-feed/helpers';
 import type { JobFeedFeedItem } from '@/lib/job-feed/types';
@@ -289,6 +291,8 @@ const COUNTRY_CODES = JOB_FEED_COUNTRY_OPTIONS.map((option) => option.value) as 
 const WORK_MODES = JOB_FEED_REMOTE_PREFERENCE_OPTIONS.map((option) => option.value) as [string, ...string[]];
 const EMPLOYMENT_TYPES = JOB_FEED_EMPLOYMENT_TYPE_OPTIONS.map((option) => option.value) as [string, ...string[]];
 const SENIORITY = JOB_FEED_SENIORITY_OPTIONS.map((option) => option.value) as [string, ...string[]];
+/** The most searches any plan runs in one run; the tool checks the user's own plan. */
+const SEARCHES_PER_RUN_MAX = Math.max(...Object.values(JOB_FEED_TIER_LIMITS).map((limits) => limits.maxMainQueries));
 
 const updateFeedSettings = defineTool({
   name: 'update_feed_settings',
@@ -299,8 +303,8 @@ const updateFeedSettings = defineTool({
   input: z.object({
     revision: z.number().int().min(0)
       .describe('The revision from get_feed_settings (0 before the feed is set up). If the settings changed since, in the web app or another call, nothing is changed and the call fails: read them again and send the new revision.'),
-    roles: z.array(z.string().trim().min(1).max(80)).min(1).max(8).optional()
-      .describe('Job titles to search for. Each feed run makes a limited number of role and country searches, so fewer roles may be kept than sent; the result lists the searches kept.'),
+    roles: z.array(z.string().trim().min(1).max(80)).min(1).max(50).optional()
+      .describe('Job titles to search for. The search list holds a limited number of role and country searches (searchLimit), so fewer roles may be kept than sent: droppedRoles and warning in the result name any left out.'),
     countries: z.array(z.enum(COUNTRY_CODES)).min(1).max(12).optional()
       .describe(`Countries to search, as two-letter codes: ${COUNTRY_CODES.join(', ')}.`),
     workModes: z.array(z.enum(WORK_MODES)).min(1).max(5).optional()
@@ -331,6 +335,9 @@ const updateFeedSettings = defineTool({
     settings: settingsSchema,
     searches: z.array(z.object({ role: z.string(), country: z.string() })).nullable(),
     searchLimit: z.number().nullable(),
+    /** Roles sent that did not fit the search list. */
+    droppedRoles: z.array(z.string()),
+    warning: z.string().nullable(),
   }),
   async confirm(args, { userId }) {
     return feedCall(async () => {
@@ -348,19 +355,31 @@ const updateFeedSettings = defineTool({
       const { settings: before, searchLimit } = await loadFeedSettings(userId);
       const changed = changedFeedSettingFields(before, patch, searchLimit);
       if (before && changed.length === 0) {
-        return ok({ changed, revision: before.revision, settings: toSettingsView(before), searches: null, searchLimit: null });
+        const kept = new Set(before.target_roles.map((role) => role.toLowerCase()));
+        const droppedRoles = (patch.roles ?? []).filter((role) => !kept.has(role.toLowerCase()));
+        return ok({ changed, revision: before.revision, settings: toSettingsView(before), searches: null, searchLimit: null, droppedRoles, warning: droppedWarning(droppedRoles, searchLimit) });
       }
       const saved = await updateFeedSettingsPartial({ userId, patch, clientRequestId: null, expectedRevision: args.revision });
+      const kept = new Set(saved.settings.target_roles.map((role) => role.toLowerCase()));
+      const droppedRoles = (patch.roles ?? []).filter((role) => !kept.has(role.toLowerCase()));
       return ok({
         changed,
         revision: saved.settings.revision,
         settings: toSettingsView(saved.settings),
         searches: saved.searches ? saved.searches.map((row) => ({ role: row.query, country: row.targetCountry })) : null,
         searchLimit: saved.searchLimit,
+        droppedRoles,
+        warning: droppedWarning(droppedRoles, saved.searchLimit),
       });
     });
   },
 });
+
+/** Why roles were left out, in a sentence an agent can pass on. Null when none were. */
+function droppedWarning(droppedRoles: string[], searchLimit: number): string | null {
+  if (droppedRoles.length === 0) return null;
+  return `${droppedRoles.length} of the roles sent did not fit: the search list holds ${searchLimit} role and country searches on this plan. Not saved: ${droppedRoles.join(', ')}. Send fewer roles or countries, or set the searches with update_feed_searches.`;
+}
 
 function toPatch(args: {
   revision?: number;
@@ -576,9 +595,15 @@ const runJobFeed = defineTool({
   name: 'run_job_feed',
   title: 'Run job feed',
   description:
-    "Queues today's job search for the user and returns at once with a runId and its status: queued or running while it is in progress, completed or failed once it ended. The search runs in the background, usually within a couple of minutes, and the jobs it finds appear in get_job_feed when the run completes. Nothing runs on a schedule: this call, or the user in the web app, starts the day's run. At most one completed run a day (a failed run can be started again), and it needs consent on file.",
+    "Queues a job search for the user and returns at once with a runId and its status: queued or running while it is in progress, completed or failed once it ended. The search runs in the background, usually within a couple of minutes, and the jobs it finds appear in get_job_feed when the run completes. It searches the saved search list, or the queries sent, through the same filtering and ranking as every run. Nothing runs on a schedule: this call, or the user in the web app, starts a run. The plan sets how many completed runs a day are allowed (runsPerDay; a failed run can be started again), and it needs consent on file.",
   hints: { readOnly: false, destructive: false, idempotent: true, openWorld: true },
-  input: z.object({}),
+  input: z.object({
+    queries: z.array(z.object({
+      query: z.string().trim().min(1).max(80).describe('A role keyword, for example "Applied AI Engineer", in the language ads in that country use.'),
+      country: z.enum(COUNTRY_CODES).describe('Two-letter country code.'),
+    })).min(1).max(SEARCHES_PER_RUN_MAX).optional()
+      .describe("This run's own searches instead of the saved search list, for example to try another title. Up to the plan's searches per run; the saved settings and list stay as they are. Without it the run searches the next part of the saved list."),
+  }),
   output: z.object({
     runId: z.string().nullable(),
     status: z.string().nullable(),
@@ -591,15 +616,26 @@ const runJobFeed = defineTool({
     jobsAfterPrefilter: z.number().nullable(),
     rankedJobsCount: z.number().nullable(),
     failed: z.boolean(),
+    /** Completed runs still allowed today after this one. */
+    runsLeftToday: z.number(),
+    runsPerDay: z.number(),
+    /** Which run of the day this is, from 0. */
+    runSlot: z.number().nullable(),
   }),
-  async run(_args, { userId }) {
+  async run({ queries }, { userId }) {
     return feedCall(async () => {
       await withinRateLimit(`job-feed-run:${userId}`, RATE_LIMITS['job-feed-run']);
       const blocker = await explainFeedRunBlocker(userId);
       if (blocker) throw new ToolError(blocker.code, blocker.message);
       // An agent cannot give the user's consent, so the run only goes ahead on consent already on file.
       // The run itself happens on the agent queue; this returns once it is queued.
-      const result = await queueFeedRun(userId);
+      const limit = getJobFeedTierLimits((await requireFeedViewer(userId)).subscription_tier).maxMainQueries;
+      if (queries && queries.length > limit) {
+        throw new ToolError('invalid_input', `This plan runs at most ${limit} searches a run. Send ${limit} or fewer.`);
+      }
+      const result = await queueFeedRun(userId, {
+        customQueries: queries ? queries.map((row) => ({ query: row.query, targetCountry: row.country })) : null,
+      });
       return ok({
         runId: result.runId,
         status: result.status,
@@ -611,6 +647,9 @@ const runJobFeed = defineTool({
         jobsAfterPrefilter: result.jobsAfterPrefilter,
         rankedJobsCount: result.rankedJobsCount,
         failed: result.status === 'failed',
+        runsLeftToday: result.runsLeftToday,
+        runsPerDay: result.runsPerDay,
+        runSlot: result.runSlot,
       });
     });
   },

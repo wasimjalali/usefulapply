@@ -52,6 +52,12 @@ export interface JobFeedTierLimits {
   maxRawJobsPerRun: number;
   prefilterHardCap: number;
   visibleCount: number;
+  /**
+   * Completed runs a user may start in one local day. A later run of the day takes the next slice of the
+   * search list (it wraps), so it searches other queries, or the same ones again for what was posted since.
+   * At 1 the classic gate applies: one completed run a day, the next at least 20 hours later.
+   */
+  runsPerDay: number;
 }
 
 /**
@@ -73,6 +79,7 @@ export const JOB_FEED_FREE_TIER_LIMITS: JobFeedTierLimits = {
   maxRawJobsPerRun: 10,
   prefilterHardCap: 10,
   visibleCount: 5,
+  runsPerDay: 1,
 };
 
 export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
@@ -94,16 +101,19 @@ export const JOB_FEED_TIER_LIMITS: Record<JobFeedTier, JobFeedTierLimits> = {
     // Max keeps its edge via 2x search volume (4 queries vs Plus's 2), not a
     // smaller visible cap.
     visibleCount: 25,
+    runsPerDay: 1,
   },
   max: {
-    // Max searches four times and keeps a fifth call in reserve (Wasim,
-    // 20 Aug 2026). Same shape as Plus and Free: the extra call is only
-    // spent on an empty or thin day.
-    maxDailyQueries: 5,
-    maxMainQueries: 4,
-    maxRawJobsPerRun: 40,
-    prefilterHardCap: 30,
+    // Max searches eight times a run and keeps two calls in reserve, up to three
+    // runs a day (Wasim, 25 Oct 2026: "increase the amount of calls", with the
+    // SerpAPI quota raised to match). A reserve call is only spent on an empty
+    // or thin run. At most 30 searches a day.
+    maxDailyQueries: 10,
+    maxMainQueries: 8,
+    maxRawJobsPerRun: 60,
+    prefilterHardCap: 45,
     visibleCount: 25,
+    runsPerDay: 3,
   },
 };
 
@@ -126,10 +136,10 @@ export const JOB_FEED_INPUT_CAPS: Record<JobFeedTier, JobFeedInputCaps> = {
     maxCitiesPerCountry: 2,
   },
   max: {
-    // 4 main queries. 1 country → 4 roles. 2 countries → 2 roles each.
-    maxRoles: 4,
-    maxCountries: 4,
-    maxCitiesPerCountry: 4,
+    // 8 main queries a run. 1 country → 8 roles. 2 countries → 4 roles each.
+    maxRoles: 8,
+    maxCountries: 8,
+    maxCitiesPerCountry: 8,
   },
 };
 
@@ -153,6 +163,15 @@ export function getJobFeedInputCaps(subscriptionTier: string | null | undefined)
   if (subscriptionTier === 'free') return JOB_FEED_INPUT_CAPS_FREE;
   if (subscriptionTier === 'max') return JOB_FEED_INPUT_CAPS.max;
   return JOB_FEED_INPUT_CAPS.plus;
+}
+
+/**
+ * How long the confirmed search list may be: one run's searches times the runs a day, so every run of the
+ * day can search its own slice.
+ */
+export function searchListCapForTier(subscriptionTier: string): number {
+  const limits = getJobFeedTierLimits(subscriptionTier);
+  return limits.maxMainQueries * limits.runsPerDay;
 }
 
 export function getJobFeedTierLimits(subscriptionTier: string): JobFeedTierLimits {
