@@ -71,6 +71,16 @@ const HAYS_HTML_ENCODED = [
 /** A copy Google cut off with an ellipsis; its page refuses us (403). */
 const CUT = 'Werdegang Du hast einen Master in Informatik oder einem verwandten Fach und bringst Erfahrung mit Sprachmodellen mit. '.repeat(14) + 'Mehrjährige praktische Berufserfahrung in der Entwicklung von AI- od…';
 
+/** List items Google also returns as highlights, and its copy with them glued together after a glued heading. */
+const GLUE_ITEMS = [
+  'University degree in computer science or a similar field',
+  'Minimum 3 years of relevant professional experience',
+  'Experience with prompt evaluation and LLM tooling',
+  'Very good German and English, written and spoken',
+];
+const GLUED_WITH_HIGHLIGHTS = 'Glue Labs builds prompt tooling for insurers and banks across Europe. You design and evaluate prompts for our customer-facing assistants. ' +
+  'Qualifications' + GLUE_ITEMS.join('') + ' We offer a hybrid setup in Berlin and a learning budget.';
+
 /** A 190-character apply link, longer than the 80 the old wrapper kept. */
 const LONG_APPLY = 'https://talents.studysmarter.de/companies/thermondo/ai-automation-enablement-manager-m-w-d-berlin-kreuzberg-1234567/apply?utm_source=google_jobs_apply&utm_medium=organic&utm_campaign=google_jobs';
 
@@ -133,6 +143,17 @@ function serpJobs() {
       share_link: 'https://www.google.de/search?ibp=htl;jobs&q=AI+Enablement+Manager&htidocid=1HgNBthermondo-long-share-link-0123456789',
       description: longAd(0),
       apply_options: [{ title: 'Talents By StudySmarter', link: LONG_APPLY }],
+    },
+    {
+      ...base,
+      job_id: 'glued-highlights',
+      title: 'Prompt Engineer',
+      company_name: 'Glue Labs',
+      share_link: 'https://www.google.de/search?ibp=htl;jobs&q=Prompt+Engineer&htidocid=glue',
+      // Google's copy with the list markup stripped, and the same items in its highlights. The page is gone (404).
+      description: GLUED_WITH_HIGHLIGHTS,
+      job_highlights: [{ title: 'Qualifications', items: GLUE_ITEMS }],
+      apply_options: [{ title: 'Glue Labs', link: 'https://jobs.glue-labs.de/prompt-engineer' }],
     },
     ...Array.from({ length: 20 }, (_, i) => ({
       ...base,
@@ -357,6 +378,39 @@ async function main(): Promise<void> {
       }
     }
     return { applyUrlLength: LONG_APPLY.length };
+  });
+
+  await scenario('d5. list items and headings are separate lines: from the employer page HTML, and from Google\'s copy with its highlights', async () => {
+    const lines = (text: unknown) => String(text).split('\n').map((line) => line.trim());
+
+    // Compound Law: <h3> and a <p><strong> heading, two <ul> lists.
+    const compound = lines((await stored('compound-law')).description);
+    for (const heading of ['Your tasks:', 'Requirements:']) assert.ok(compound.includes(heading), `"${heading}" is a line of its own`);
+    for (const item of ['- Build retrieval and drafting pipelines on Claude and open models', '- Minimum 2 years of professional experience in software engineering', '- Fluent English; German is a plus']) {
+      assert.ok(compound.includes(item), `"${item}" is a line of its own`);
+    }
+
+    // Hays: entity-encoded HTML behind a redirect, the glued Google copy replaced.
+    const hays = await stored('hays-devops-ai');
+    assert.equal(hays.description_source, 'employer_page', 'read from the page the redirect led to');
+    const haysLines = lines(hays.description);
+    assert.ok(haysLines.includes('Ihre Aufgaben:') && haysLines.includes('Ihre Qualifikationen:'));
+    assert.ok(haysLines.includes('- Kenntnisse in DevOps-Praktiken sowie CI/CD-Pipelines'));
+    assert.ok(haysLines.includes('- Sehr gute Deutsch- und Englischkenntnisse in Wort und Schrift'));
+    assert.ok(!String(hays.description).includes('CI/CD-PipelinesSehr'), 'nothing glued is left');
+    assert.ok(!/&lt;|<li|<\/?p>/.test(String(hays.description)), 'no markup or entities left');
+
+    // Glue Labs: no page, so Google's copy, with the heading and its items split on Google's own highlights.
+    const glue = await stored('glued-highlights');
+    assert.equal(glue.description_source, 'serp');
+    const glueLines = lines(glue.description);
+    assert.ok(glueLines.includes('Qualifications:'), 'the glued heading is a line of its own');
+    for (const item of GLUE_ITEMS) assert.ok(glueLines.includes(`- ${item}`), `"${item}" is an item`);
+
+    // The MCP returns the same lines.
+    const item = byCompany(feed.items, 'Hays');
+    assert.ok(unwrap(item.description).split('\n').includes('- Kenntnisse in DevOps-Praktiken sowie CI/CD-Pipelines'));
+    return { compound: compound.slice(0, 8), hays: haysLines.slice(0, 6), glue: glueLines };
   });
 
   await scenario('d9. nothing left the machine except the stubbed SerpAPI calls and the stubbed employer pages', async () => {
