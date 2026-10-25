@@ -597,13 +597,13 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
                 <button
                   type="button"
                   onClick={() => setShowFullPreview(true)}
-                  className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-brand-strong shadow-resting transition-all hover:-translate-y-0.5 hover:border-border-accent-soft hover:shadow-elevated cursor-pointer"
+                  className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-brand-strong shadow-resting transition-[box-shadow,border-color] duration-(--duration-base) ease-standard hover:border-border-accent-soft hover:shadow-elevated cursor-pointer"
                 >
                   <Maximize2 className="w-3.5 h-3.5" />
                   Full Preview
                 </button>
               )}
-              <Card className="border-border bg-document p-8 shadow-elevated">
+              <Card className="bg-document p-8">
               {isEditMode ? (
                 /* Edit Mode */
                 <div className="space-y-2">
@@ -613,7 +613,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
                   <textarea
                     value={activeCoverLetter?.body || ''}
                     onChange={(e) => updateField('body', e.target.value)}
-                    className="w-full text-sm text-ink-body leading-relaxed bg-surface border border-border-strong rounded px-3 py-3 focus:border-focus-ring-soft focus:outline-none resize-none"
+                    className="w-full text-sm text-ink-body leading-relaxed bg-surface border border-border rounded-control px-3 py-3 focus:border-focus-ring-soft focus:outline-none resize-none"
                     rows={20}
                     placeholder="Cover letter content..."
                   />
@@ -631,7 +631,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
       {layoutPreview && <PdfPreviewModal url={layoutPreview.url} title="Cover letter layout" onClose={closeLayoutPreview} returnFocusTo={layoutOpenerRef.current} />}
 
       {showFullPreview && activeCoverLetter && createPortal(
-        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-navy-950/45 p-4 backdrop-blur-[2px]">
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-surface-inverse-strong/45 p-4">
           <div className="relative flex h-[92vh] w-full max-w-[1120px] flex-col overflow-hidden rounded-modal border border-border bg-canvas shadow-floating">
             <div className="flex items-center justify-between border-b border-border bg-surface px-5 py-3">
               <div>
@@ -648,7 +648,7 @@ export function CoverLetterPanel({ toolbarPortal }: CoverLetterPanelProps = {}) 
             </div>
 
             <div className="flex-1 overflow-auto bg-canvas p-4 sm:p-6">
-              <Card className="mx-auto w-full max-w-3xl p-8 sm:p-10 shadow-elevated">
+              <Card className="mx-auto w-full max-w-3xl p-8 sm:p-10">
                 {renderCoverLetterContent(activeCoverLetter)}
               </Card>
             </div>

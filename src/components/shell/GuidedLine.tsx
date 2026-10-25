@@ -792,7 +792,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                     value={pastedCv}
                     onChange={(e) => setPastedCv(e.target.value)}
                     placeholder="Paste your full CV. Name, experience, skills, the lot."
-                    className="h-52 w-full resize-none rounded-control border border-border bg-surface-raised p-4 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-accent focus:outline-none"
+                    className="h-52 w-full resize-none rounded-control border border-border bg-surface-raised p-4 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-focus focus:ring-2 focus:ring-focus-ring-soft/40 focus:outline-none"
                   />
                   <button
                     type="button"
@@ -805,7 +805,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
               ) : (
                 <div
                   {...getRootProps()}
-                  className={`mt-6 flex h-60 flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed bg-accent-soft ${
+                  className={`mt-6 flex h-60 flex-col items-center justify-center gap-3 rounded-card border border-dashed bg-accent-soft ${
                     isDragActive ? 'border-accent' : 'border-border-accent'
                   }`}
                 >
@@ -866,7 +866,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   pendingJobRef.current = e.target.value;
                 }}
                 placeholder="Paste the whole ad. Title, company and requirements, all of it."
-                className="mt-4 h-24 w-full resize-none rounded-card border border-border bg-surface-raised px-4 py-3.5 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-accent focus:outline-none"
+                className="mt-4 h-24 w-full resize-none rounded-card border border-border bg-surface-raised px-4 py-3.5 text-sm text-ink-body placeholder:text-ink-muted focus:border-border-focus focus:ring-2 focus:ring-focus-ring-soft/40 focus:outline-none"
               />
             </div>
           </div>
@@ -882,7 +882,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                 value={jobText}
                 onChange={(e) => setJobText(e.target.value)}
                 placeholder="Paste the whole ad. Title, company and requirements, all of it."
-                className="mt-6 h-[200px] w-full resize-none rounded-card border-2 border-border-accent bg-surface-raised px-4 py-3.5 text-sm leading-relaxed text-ink-body placeholder:text-ink-muted shadow-[0_0_0_4px_rgba(212,168,83,0.12)] focus:outline-none"
+                className="mt-6 h-[200px] w-full resize-none rounded-card border border-border-accent bg-surface-raised px-4 py-3.5 text-sm leading-relaxed text-ink-body placeholder:text-ink-muted focus:border-border-focus focus:ring-2 focus:ring-focus-ring-soft/40 focus:outline-none"
               />
               {lineErrorFeedback}
               <div className="mt-6 flex flex-wrap items-center gap-4">
@@ -983,7 +983,7 @@ export function GuidedLine({ onKitReady }: GuidedLineProps) {
                   ) : gaps.map((item) => (
                     <div key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-ink-body">
                       <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-pill bg-accent-soft-strong text-accent-soft-ink">
-                        <span className="block h-0.5 w-2 rounded-sm bg-current" />
+                        <span className="block h-0.5 w-2 rounded-pill bg-current" />
                       </span>
                       <span>{item}</span>
                     </div>

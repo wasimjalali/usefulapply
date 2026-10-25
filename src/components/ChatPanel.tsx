@@ -1967,7 +1967,7 @@ export function ChatPanel({
                       className={`w-full resize-none rounded-control border bg-surface-raised px-3.5 py-3 text-sm text-ink-body placeholder:text-ink-muted/70 focus:outline-none transition-colors duration-(--duration-base) ${
                         heroFocusRing
                           ? 'border-accent ring-2 ring-border-accent'
-                          : 'border-border focus:border-border-accent focus:ring-2 focus:ring-border-accent/50'
+                          : 'border-border focus:border-border-focus focus:ring-2 focus:ring-focus-ring-soft/40'
                       }`}
                     />
 
@@ -2107,7 +2107,7 @@ export function ChatPanel({
                 <BrandIcon size="xs" theme="light" />
               </div>
               <div className="flex-1">
-                <Card padding="sm" className="bg-surface-raised border-border shadow-resting">
+                <Card padding="sm" className="bg-surface-raised">
                   <MarkdownText
                     content={
                       currentCV
@@ -2247,7 +2247,7 @@ export function ChatPanel({
                   {v2Progress.percent > 0 && (
                     <div className="mt-3 h-1.5 bg-sunken rounded-pill overflow-hidden">
                       <div
-                        className="h-full bg-accent transition-all duration-300"
+                        className="h-full bg-accent transition-all duration-(--duration-base)"
                         style={{ width: `${v2Progress.percent}%` }}
                       />
                     </div>

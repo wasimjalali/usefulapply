@@ -44,19 +44,19 @@ export default function ComparisonTable({ tools, features }: ComparisonTableProp
   };
 
   const getStatusBgColor = (status: 'yes' | 'no' | 'warning' | 'text') => {
-    if (status === 'yes') return 'bg-positive-soft/50';
-    if (status === 'no') return 'bg-danger-soft/50';
-    if (status === 'warning') return 'bg-warning-soft/50';
+    if (status === 'yes') return 'bg-positive-soft';
+    if (status === 'no') return 'bg-danger-soft';
+    if (status === 'warning') return 'bg-warning-soft';
     return 'bg-surface-raised';
   };
 
   return (
     <div className="my-8 overflow-x-auto">
       <div className="inline-block min-w-full align-middle">
-        <div className="overflow-hidden border border-border rounded-xl shadow-resting">
+        <div className="overflow-hidden border border-border rounded-card shadow-resting">
           <table className="min-w-full divide-y divide-border">
             {/* Header */}
-            <thead className="bg-gradient-to-r from-navy-600 to-navy-700">
+            <thead className="bg-brand">
               <tr>
                 <th
                   scope="col"
@@ -83,9 +83,9 @@ export default function ComparisonTable({ tools, features }: ComparisonTableProp
               {features.map((feature, featureIdx) => (
                 <tr
                   key={feature.name}
-                  className={featureIdx % 2 === 0 ? 'bg-surface/30' : 'bg-surface-raised'}
+                  className={featureIdx % 2 === 0 ? 'bg-surface' : 'bg-surface-raised'}
                 >
-                  <td className="sticky left-0 z-10 bg-surface-raised px-6 py-4 text-sm font-medium text-brand-strong border-r border-border whitespace-nowrap">
+                  <td className={`sticky left-0 z-10 ${featureIdx % 2 === 0 ? 'bg-surface' : 'bg-surface-raised'} px-6 py-4 text-sm font-medium text-brand-strong border-r border-border whitespace-nowrap`}>
                     {feature.name}
                   </td>
                   {feature.values.map((value, valueIdx) => (

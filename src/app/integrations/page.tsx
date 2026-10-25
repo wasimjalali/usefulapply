@@ -101,7 +101,7 @@ const p = 'text-ink-muted leading-relaxed';
 const card = 'bg-surface rounded-card p-6 border border-border shadow-resting';
 const code = 'font-mono text-sm bg-canvas border border-border rounded-control px-1.5 py-0.5 text-ink-body whitespace-nowrap';
 const pre =
-  'font-mono text-sm bg-surface-inverse text-ink-inverse-warm rounded-xl p-4 whitespace-pre overflow-x-auto leading-relaxed';
+  'font-mono text-sm bg-surface-inverse text-ink-inverse-warm rounded-control p-4 whitespace-pre overflow-x-auto leading-relaxed';
 // Shell commands wrap instead of scrolling, so the whole command is visible in a half-width card.
 const commandPre = pre.replace('whitespace-pre overflow-x-auto', 'whitespace-pre-wrap wrap-anywhere');
 

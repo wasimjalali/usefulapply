@@ -7,7 +7,6 @@ import { Check, ArrowRight, ChevronDown, Loader2 } from 'lucide-react';
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
-import { PricingAurora } from '@/components/marketing/PricingAurora';
 import { useAuth } from '@/contexts/AuthContext';
 import { pricingFAQs } from '@/lib/marketing/pricing-faqs';
 import { CREDIT_PRICES } from '@/lib/plans';
@@ -187,9 +186,8 @@ export default function PricingPage() {
     <div className="min-h-screen bg-canvas">
       <Navbar />
       <main>
-      {/* Aurora-backed first-fold: hero + pricing cards share one premium backdrop */}
+      {/* First fold: hero + pricing cards on the flat cream page background */}
       <div className="relative overflow-hidden">
-      <PricingAurora />
       {/* Hero Section */}
       <section className="pt-16 pb-8 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-4xl mx-auto text-center relative">
@@ -340,13 +338,13 @@ export default function PricingPage() {
         </div>
       </section>
       </div>
-      {/* /Aurora-backed first-fold */}
+      {/* /first fold */}
 
       {/* Add-on credit packs — moved out of cards into a dedicated band */}
       <section className="scroll-mt-24 pb-20 px-4 sm:px-6 lg:px-8" id="addons">
         <div className="max-w-4xl mx-auto">
           <ScrollReveal>
-          <div className="bg-surface-inverse border border-border-inverse rounded-card p-6 md:p-8 shadow-elevated">
+          <div className="bg-surface-inverse border border-border-inverse rounded-card p-6 md:p-8 shadow-resting">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               {/* Left: label + headline + note */}
               <div className="flex-1">
@@ -365,7 +363,7 @@ export default function PricingPage() {
               {addonPacks.map((pack) => (
                 <div key={pack.name} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                   {/* Credit count block */}
-                  <div className="bg-surface-inverse-raised border border-border-inverse-raised rounded-xl px-5 py-4 text-center sm:text-left">
+                  <div className="bg-surface-inverse-raised border border-border-inverse-raised rounded-card px-5 py-4 text-center sm:text-left">
                     <p className="text-[28px] font-bold text-ink-inverse leading-none">{pack.credits}</p>
                     <p className="text-[13px] font-semibold text-accent mt-0.5">credits</p>
                     <p className="text-[12px] text-ink-inverse-faint mt-1">{pack.applications} more applications</p>
@@ -381,7 +379,7 @@ export default function PricingPage() {
                       || (profile?.subscription_tier === 'free'
                         ? loadingPlan === 'plus'
                         : loadingAddon === pack.name.split(' ')[0].toLowerCase())}
-                    className="cta-gold px-6 py-4 rounded-xl bg-accent hover:bg-accent-strong text-accent-ink font-bold text-[18px] shadow-resting cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 group"
+                    className="transition-colors duration-(--duration-base) ease-standard px-6 py-4 rounded-control bg-accent hover:bg-accent-strong text-accent-ink font-bold text-[18px] cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2 group"
                   >
                     {Boolean(user && !profile)
                       || loadingAddon === pack.name.split(' ')[0].toLowerCase()
@@ -402,8 +400,6 @@ export default function PricingPage() {
 
       {/* Interactive Time Savings Calculator — Warm premium design */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-surface relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-border-accent-soft/30 rounded-pill -translate-y-1/2 translate-x-1/2 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent-soft-strong/40 rounded-pill translate-y-1/2 -translate-x-1/2 blur-3xl" />
         <div className="max-w-4xl mx-auto relative">
           <ScrollReveal>
           <div className="text-center mb-10">
@@ -418,10 +414,10 @@ export default function PricingPage() {
           </ScrollReveal>
 
           <ScrollReveal delay={150}>
-          <div className="bg-surface-raised rounded-card border border-border shadow-floating p-8 md:p-10">
+          <div className="bg-surface-raised rounded-card border border-border shadow-resting p-8 md:p-10">
             {/* Tier Selector — pill buttons */}
             <div className="flex items-center justify-center mb-10">
-              <div className="inline-flex bg-canvas rounded-xl p-1.5 gap-1 border border-border">
+              <div className="inline-flex bg-canvas rounded-card p-1.5 gap-1 border border-border">
                 {savingsTiers.map((tier, i) => (
                   <button
                     key={tier.plan}
@@ -441,15 +437,15 @@ export default function PricingPage() {
 
             {/* Stats Row */}
             <div className="grid grid-cols-3 gap-4 md:gap-6 mb-8">
-              <div className="text-center p-4 md:p-6 bg-surface rounded-xl border border-border">
+              <div className="text-center p-4 md:p-6 bg-surface rounded-card border border-border">
                 <div className="text-3xl md:text-5xl font-bold text-brand mb-2">{animatedApps}</div>
                 <div className="text-sm text-ink-muted">applications a month</div>
               </div>
-              <div className="text-center p-4 md:p-6 bg-surface rounded-xl border border-border">
+              <div className="text-center p-4 md:p-6 bg-surface rounded-card border border-border">
                 <div className="text-3xl md:text-5xl font-bold text-accent-strong mb-2">40<span className="text-2xl md:text-3xl">x</span></div>
                 <div className="text-sm text-ink-muted">faster than by hand</div>
               </div>
-              <div className="text-center p-4 md:p-6 bg-surface-inverse-soft rounded-xl">
+              <div className="text-center p-4 md:p-6 bg-surface-inverse-soft rounded-card">
                 <div className="text-3xl md:text-5xl font-bold text-accent mb-2">~{animatedHours}</div>
                 <div className="text-sm text-ink-accent-on-inverse font-medium">hours saved each month</div>
               </div>
@@ -503,7 +499,7 @@ export default function PricingPage() {
             {faqs.map((faq, idx) => (
               <div
                 key={idx}
-                className="bg-surface-raised border border-border rounded-xl overflow-hidden"
+                className="bg-surface-raised border border-border rounded-card overflow-hidden"
               >
                 <button
                   onClick={() => setExpandedFaq(expandedFaq === idx ? null : idx)}
@@ -529,7 +525,6 @@ export default function PricingPage() {
 
       {/* CTA Section */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-surface-inverse-raised relative overflow-hidden">
-        <div className="absolute inset-0 dot-grid opacity-[0.04]" />
         <ScrollReveal>
         <div className="max-w-3xl mx-auto text-center relative">
           <h2 className="font-bold text-ink-inverse text-[32px] md:text-[40px] leading-[1.1] mb-4">
@@ -541,7 +536,7 @@ export default function PricingPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="cta-gold px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting flex items-center justify-center text-base"
+              className="transition-colors duration-(--duration-base) ease-standard px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control flex items-center justify-center text-base"
             >
               Start free
             </Link>

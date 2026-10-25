@@ -92,7 +92,7 @@ export function AgentProgressV2({
         <div className="flex items-center gap-2.5 mb-3 pb-2 border-b border-border-accent-soft/60">
           <div className="h-1 flex-1 rounded-pill bg-sunken overflow-hidden">
             <div
-              className="h-full rounded-pill bg-gradient-to-r from-gold-400 to-gold-500 transition-all duration-500 ease-out"
+              className="h-full rounded-pill bg-accent transition-all duration-(--duration-slow) ease-standard"
               style={{ width: `${progress?.percent ?? 0}%` }}
             />
           </div>
@@ -110,19 +110,17 @@ export function AgentProgressV2({
           return (
             <div
               key={step.id}
-              className={`rounded-control transition-all duration-300 agent-step-enter ${
+              className={`rounded-control transition-all duration-(--duration-base) agent-step-enter ${
                 step.status === 'completed'
-                  ? 'bg-accent-soft/80 border border-border-accent-soft/80 step-complete-pulse'
+                  ? 'bg-accent-soft border border-border-accent-soft step-complete-pulse'
                   : step.status === 'running'
-                    ? 'bg-surface-raised border border-border-strong shadow-resting'
-                    : step.status === 'error'
-                      ? 'bg-surface border border-border'
-                      : 'bg-surface/60 border border-border/60'
+                    ? 'bg-surface-raised border border-border shadow-resting'
+                    : 'bg-surface border border-border'
               }`}
             >
               <div className="flex items-center gap-3 text-sm py-2.5 px-3">
                 {/* Step icon */}
-                <div className={`flex-shrink-0 w-7 h-7 rounded-pill flex items-center justify-center transition-all duration-300 ${
+                <div className={`flex-shrink-0 w-7 h-7 rounded-pill flex items-center justify-center transition-all duration-(--duration-base) ${
                   step.status === 'completed'
                     ? 'bg-accent-soft-strong'
                     : step.status === 'running'
@@ -176,7 +174,7 @@ export function AgentProgressV2({
 
       {/* Company Research Card */}
       {companyResearch && (
-        <div className="mt-3 p-4 rounded-card border border-border-brand-soft bg-gradient-to-br from-navy-50 to-cream-50">
+        <div className="mt-3 p-4 rounded-card border border-border-brand-soft bg-surface">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 rounded-control bg-brand-soft-strong flex items-center justify-center">
               <Building2 className="w-4 h-4 text-brand" />
@@ -190,28 +188,28 @@ export function AgentProgressV2({
           
           <div className="grid grid-cols-2 gap-2 text-xs">
             {companyResearch.address && (
-              <div className="bg-surface-raised/70 rounded-control p-2.5">
+              <div className="bg-surface-raised rounded-control p-2.5">
                 <span className="font-medium text-brand block mb-1">📍 Address</span>
                 <span className="text-ink-body">{companyResearch.address}</span>
               </div>
             )}
             
             {companyResearch.culture && companyResearch.culture.length > 0 && (
-              <div className="bg-surface-raised/70 rounded-control p-2.5">
+              <div className="bg-surface-raised rounded-control p-2.5">
                 <span className="font-medium text-brand block mb-1">🎯 Culture</span>
                 <span className="text-ink-body">{companyResearch.culture.slice(0, 2).join(', ')}</span>
               </div>
             )}
             
             {companyResearch.techStack && companyResearch.techStack.length > 0 && (
-              <div className="bg-surface-raised/70 rounded-control p-2.5">
+              <div className="bg-surface-raised rounded-control p-2.5">
                 <span className="font-medium text-brand block mb-1">💻 Tech Stack</span>
                 <span className="text-ink-body">{companyResearch.techStack.slice(0, 3).join(', ')}</span>
               </div>
             )}
             
             {companyResearch.recentNews && companyResearch.recentNews.length > 0 && (
-              <div className="bg-surface-raised/70 rounded-control p-2.5">
+              <div className="bg-surface-raised rounded-control p-2.5">
                 <span className="font-medium text-brand block mb-1">📰 Recent News</span>
                 <span className="text-ink-body">{companyResearch.recentNews[0]}</span>
               </div>

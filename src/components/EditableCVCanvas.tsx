@@ -71,7 +71,7 @@ function EditableField({ value, onChange, placeholder, multiline, className = ''
             value={tempValue}
             onChange={(e) => setTempValue(e.target.value)}
             placeholder={placeholder}
-            className={`w-full p-2 border-2 border-border-brand rounded focus:border-border-focus focus:outline-none resize-none ${className}`}
+            className={`w-full p-2 border border-border-brand rounded-control focus:border-border-focus focus:ring-2 focus:ring-focus-ring-soft/40 focus:outline-none resize-none ${className}`}
             rows={4}
             autoFocus
           />
@@ -81,15 +81,15 @@ function EditableField({ value, onChange, placeholder, multiline, className = ''
             value={tempValue}
             onChange={(e) => setTempValue(e.target.value)}
             placeholder={placeholder}
-            className={`w-full p-2 border-2 border-border-brand rounded focus:border-border-focus focus:outline-none ${className}`}
+            className={`w-full p-2 border border-border-brand rounded-control focus:border-border-focus focus:ring-2 focus:ring-focus-ring-soft/40 focus:outline-none ${className}`}
             autoFocus
           />
         )}
         <div className="flex gap-1 mt-1">
-          <button onClick={handleSave} className="p-1 bg-accent-strong text-accent-ink rounded hover:bg-accent-deep cursor-pointer" title="Save">
+          <button onClick={handleSave} className="p-1 bg-accent-strong text-accent-ink rounded-control hover:bg-accent-deep cursor-pointer" title="Save">
             <Check className="w-3 h-3" />
           </button>
-          <button onClick={handleCancel} className="p-1 bg-danger-bright text-danger-ink rounded hover:bg-danger cursor-pointer" title="Cancel">
+          <button onClick={handleCancel} className="p-1 bg-danger-bright text-danger-ink rounded-control hover:bg-danger cursor-pointer" title="Cancel">
             <X className="w-3 h-3" />
           </button>
         </div>
@@ -99,7 +99,7 @@ function EditableField({ value, onChange, placeholder, multiline, className = ''
 
   return (
     <div 
-      className={`group min-w-0 cursor-pointer hover:bg-brand-soft rounded px-1 -mx-1 transition-colors ${className}`}
+      className={`group min-w-0 cursor-pointer hover:bg-brand-soft rounded-control px-1 -mx-1 transition-colors ${className}`}
       onClick={() => setIsEditing(true)}
     >
       {label && <span className="text-xs text-ink-muted mb-1 block">{label}</span>}
@@ -394,7 +394,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                 setData(prev => ({ ...prev, signature: newSignature }));
                 setHasChanges(true);
               }}
-              className="rounded border-border-strong"
+              className="rounded-control border-border"
             />
             <span className="text-ink-muted">Include signature line</span>
           </label>
@@ -601,7 +601,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             setData(prev => ({ ...prev, experience: [...prev.experience, newExperience] }));
             setHasChanges(true);
           }}
-          className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
+          className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded-control cursor-pointer"
         >
           <Plus className="w-3 h-3" />
           Add experience
@@ -645,7 +645,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             </div>
             <div className="flex flex-wrap gap-2">
               {skillGroup.items.map((skill, skillIndex) => (
-                <div key={skillIndex} className={`flex items-center gap-1 bg-canvas rounded px-2 py-1 group ${dim(skillGroup.hiddenItems?.includes(skill))}`}>
+                <div key={skillIndex} className={`flex items-center gap-1 bg-canvas rounded-control px-2 py-1 group ${dim(skillGroup.hiddenItems?.includes(skill))}`}>
                   <EditableField
                     value={skill}
                     onChange={(v) => updateSkill(catIndex, skillIndex, v)}
@@ -664,7 +664,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
               ))}
               <button
                 onClick={() => addSkill(catIndex)}
-                className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
+                className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded-control cursor-pointer"
               >
                 <Plus className="w-3 h-3" />
                 Add skill
@@ -681,7 +681,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             setData(prev => ({ ...prev, skills: [...prev.skills, newCategory] }));
             setHasChanges(true);
           }}
-          className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
+          className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded-control cursor-pointer"
         >
           <Plus className="w-3 h-3" />
           Add skill category
@@ -745,7 +745,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                 <div className="flex flex-wrap gap-2 mt-2">
                   <span className="text-xs text-ink-muted">Technologies:</span>
                   {(proj.technologies || []).map((tech, techIndex) => (
-                    <div key={techIndex} className="flex items-center gap-1 bg-canvas rounded px-2 py-1 group">
+                    <div key={techIndex} className="flex items-center gap-1 bg-canvas rounded-control px-2 py-1 group">
                       <EditableField
                         value={tech}
                         onChange={(v) => {
@@ -782,7 +782,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
                       setData(prev => ({ ...prev, projects: newProjects }));
                       setHasChanges(true);
                     }}
-                    className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
+                    className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded-control cursor-pointer"
                   >
                     <Plus className="w-3 h-3" />
                     Add tech
@@ -814,7 +814,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             setData(prev => ({ ...prev, projects: [...(prev.projects || []), newProject] }));
             setHasChanges(true);
           }}
-          className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
+          className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded-control cursor-pointer"
         >
           <Plus className="w-3 h-3" />
           Add project
@@ -910,7 +910,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
             setData(prev => ({ ...prev, education: [...prev.education, newEducation] }));
             setHasChanges(true);
           }}
-          className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
+          className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded-control cursor-pointer"
         >
           <Plus className="w-3 h-3" />
           Add education
@@ -927,7 +927,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
         </div>
         <div className="space-y-2">
           {data.certifications.map((cert, certIndex) => (
-            <div key={cert.id || `cert-${certIndex}`} className={`flex items-center gap-2 p-2 bg-surface rounded border border-border group ${dim(cert.hidden)}`}>
+            <div key={cert.id || `cert-${certIndex}`} className={`flex items-center gap-2 p-2 bg-surface rounded-control border border-border group ${dim(cert.hidden)}`}>
               <HideToggle hidden={Boolean(cert.hidden)} onToggle={() => toggleEntryHidden('certifications', certIndex)} label="this certification" />
               <EditableField
                 value={cert.name}
@@ -986,7 +986,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
               setData(prev => ({ ...prev, certifications: [...prev.certifications, newCert] }));
               setHasChanges(true);
             }}
-            className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
+            className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded-control cursor-pointer"
           >
             <Plus className="w-3 h-3" />
             Add certification
@@ -1035,7 +1035,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
               setData(prev => ({ ...prev, additionalInfo: [...(prev.additionalInfo || []), ''] }));
               setHasChanges(true);
             }}
-            className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
+            className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded-control cursor-pointer"
           >
             <Plus className="w-3 h-3" />
             Add item
@@ -1133,7 +1133,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
           setData(prev => ({ ...prev, customSections: [...(prev.customSections || []), newSection] }));
           setHasChanges(true);
         }}
-        className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer mb-6"
+        className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded-control cursor-pointer mb-6"
       >
         <Plus className="w-3 h-3" />
         Add custom section
@@ -1149,7 +1149,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
         </div>
         <div className="flex flex-wrap gap-2">
           {data.languages.map((lang, langIndex) => (
-            <div key={`lang-${langIndex}`} className={`flex items-center gap-2 bg-canvas rounded px-3 py-1 group ${dim(lang.hidden)}`}>
+            <div key={`lang-${langIndex}`} className={`flex items-center gap-2 bg-canvas rounded-control px-3 py-1 group ${dim(lang.hidden)}`}>
               <HideToggle hidden={Boolean(lang.hidden)} onToggle={() => toggleEntryHidden('languages', langIndex)} label="this language" />
               <EditableField
                 value={lang.language}
@@ -1191,7 +1191,7 @@ export const EditableCVCanvas = forwardRef<EditableCVCanvasRef, EditableCVCanvas
               setData(prev => ({ ...prev, languages: [...prev.languages, newLang] }));
               setHasChanges(true);
             }}
-            className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded cursor-pointer"
+            className="flex items-center gap-1 text-xs text-brand hover:text-ink px-2 py-1 border border-dashed border-border-brand rounded-control cursor-pointer"
           >
             <Plus className="w-3 h-3" />
             Add language

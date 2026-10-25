@@ -7,7 +7,6 @@ import Footer from '@/components/marketing/Footer';
 import { BrandIcon } from '@/components/BrandLogo';
 import { ScrollReveal } from '@/components/marketing/ScrollReveal';
 import { JobBoardMark, JOB_BOARD_NAMES } from '@/components/marketing/JobBoardMarks';
-import { PricingAurora } from '@/components/marketing/PricingAurora';
 
 import { SEO_METADATA_BASE, SEO_SITE_URL, canonicalUrl } from '@/lib/seo/site-url';
 
@@ -254,10 +253,8 @@ export default function Home() {
       />
       <Navbar />
       <main>
-        {/* Aurora-backed first fold: the hero sits on the pricing-page
-            backdrop. Everything below the fold is flat cream. */}
+        {/* First fold: the hero on the flat cream page background. */}
         <div className="relative overflow-hidden">
-        <PricingAurora />
         {/* Hero: copy stacked over the demo, so the reel gets the full column width. */}
         <section className="relative px-4 pb-14 pt-16 sm:px-6 lg:px-8 lg:pt-24">
           <div className="mx-auto max-w-7xl">
@@ -309,7 +306,7 @@ export default function Home() {
         </section>
 
         </div>
-        {/* /Aurora-backed first fold */}
+        {/* /first fold */}
 
         {/* Volume band: the problem, as a full-bleed navy mood beat straight
             after the demo. The three lines rise one after another on scroll
@@ -608,7 +605,6 @@ export default function Home() {
             a scroll container and hijack the view() timeline of the
             scroll-settle headline inside it. */}
         <section className="relative overflow-clip bg-surface-inverse-raised px-4 py-28 sm:px-6 lg:px-8 lg:py-36">
-          <div className="absolute inset-0 dot-grid opacity-[0.04]" />
           <div className="relative mx-auto max-w-3xl text-center">
             <div className="scroll-settle">
               <h2 className="text-[36px] font-bold leading-[1.1] text-ink-inverse md:text-[48px]">
@@ -622,7 +618,7 @@ export default function Home() {
               <div className="mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
                 <Link
                   href="/dashboard"
-                  className="inline-flex h-12 items-center justify-center rounded-control bg-accent px-8 text-base font-semibold text-accent-ink shadow-resting transition-colors duration-(--duration-base) hover:bg-accent-strong cursor-pointer"
+                  className="inline-flex h-12 items-center justify-center rounded-control bg-accent px-8 text-base font-semibold text-accent-ink transition-colors duration-(--duration-base) hover:bg-accent-strong cursor-pointer"
                 >
                   Start free
                 </Link>

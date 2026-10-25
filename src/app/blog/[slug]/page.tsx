@@ -176,7 +176,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </header>
 
           {/* Content */}
-          <div className="prose prose-lg max-w-none prose-headings:text-brand-strong prose-headings:font-bold prose-p:text-ink-body prose-p:leading-relaxed prose-a:text-brand prose-a:underline hover:prose-a:text-ink-accent prose-strong:text-brand-strong prose-li:text-ink-body prose-blockquote:border-accent prose-blockquote:text-ink-muted prose-code:text-brand prose-code:bg-surface prose-code:px-1 prose-code:py-0.5 prose-code:rounded">
+          <div className="prose prose-lg max-w-none prose-headings:text-brand-strong prose-headings:font-bold prose-p:text-ink-body prose-p:leading-relaxed prose-a:text-brand prose-a:underline hover:prose-a:text-ink-accent prose-strong:text-brand-strong prose-li:text-ink-body prose-blockquote:border-accent prose-blockquote:text-ink-muted prose-code:text-brand prose-code:bg-surface prose-code:px-1 prose-code:py-0.5 prose-code:rounded-control">
             <BlogContent content={post.content} slug={post.slug} />
           </div>
 
@@ -207,7 +207,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </p>
             <Link
               href={post.cta?.href || '/dashboard'}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors text-sm"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors text-sm"
             >
               {post.cta?.text || 'Start free'}
             </Link>
@@ -220,7 +220,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {relatedPosts.map((related) => (
                   <Link key={related.slug} href={`/blog/${related.slug}`} className="group">
-                    <div className="bg-surface-raised rounded-xl border border-border p-5 hover:shadow-elevated hover:border-border-accent transition-all">
+                    <div className="bg-surface-raised rounded-card border border-border p-5 shadow-resting hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard">
                       <h3 className="font-semibold text-brand-strong mb-2 group-hover:text-ink-accent transition-colors line-clamp-2 text-sm">
                         {related.title}
                       </h3>

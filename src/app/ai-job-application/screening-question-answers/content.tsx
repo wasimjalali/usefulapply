@@ -130,10 +130,10 @@ export const content: GeoContent = {
             },
           ].map((item, i) => (
             <ScrollReveal key={i} delay={i * 80}>
-              <div className="bg-surface-raised rounded-xl border border-border p-6">
+              <div className="bg-surface-raised rounded-card border border-border p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
                   <h3 className="text-lg font-bold text-brand">{item.type}</h3>
-                  <span className="inline-block px-2.5 py-0.5 bg-surface border border-border rounded text-xs font-medium text-ink-body">
+                  <span className="inline-block px-2.5 py-0.5 bg-surface border border-border rounded-control text-xs font-medium text-ink-body">
                     {item.length}
                   </span>
                 </div>
@@ -227,13 +227,13 @@ export const content: GeoContent = {
     actions: <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
       <Link
         href="/dashboard"
-        className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-accent-ink font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-floating text-lg inline-flex items-center gap-2"
+        className="px-10 py-4 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors duration-(--duration-fast) ease-standard text-lg inline-flex items-center gap-2"
       >
         Start free
       </Link>
       <Link
         href="/ai-job-application"
-        className="px-10 py-4 glass-dark text-ink-inverse font-semibold rounded-xl hover:bg-ink-inverse/30 hover:shadow-xl hover:scale-[1.02] hover:border-accent/50 transition-all duration-300 text-lg inline-flex items-center gap-2"
+        className="px-10 py-4 border border-border-inverse-raised bg-ink-inverse/10 text-ink-inverse font-semibold rounded-control hover:bg-ink-inverse/20 transition-colors duration-(--duration-base) ease-standard text-lg inline-flex items-center gap-2"
       >
         <ArrowLeft className="w-5 h-5" />
         Back to Guide

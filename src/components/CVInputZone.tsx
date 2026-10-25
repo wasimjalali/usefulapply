@@ -72,7 +72,7 @@ export function CVInputZone({
   return (
     <div>
       {/* Mode tabs */}
-      <div className="flex gap-1 p-1 bg-canvas rounded-xl mb-3">
+      <div className="flex gap-1 p-1 bg-canvas rounded-control mb-3">
         <button
           type="button"
           onClick={() => setMode('file')}
@@ -119,9 +119,9 @@ export function CVInputZone({
       {/* Text paste mode */}
       {mode === 'text' && (
         <div
-          className={`border-2 border-dashed rounded-xl overflow-hidden transition-colors ${
+          className={`border border-dashed rounded-card overflow-hidden transition-colors ${
             isLoading
-              ? 'border-border-strong opacity-50'
+              ? 'border-border opacity-50'
               : 'border-border-stronger focus-within:border-border-brand'
           }`}
         >

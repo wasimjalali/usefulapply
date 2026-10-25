@@ -79,7 +79,7 @@ export function ComparisonDeepDive({ tool, isBrand = false }: ComparisonDeepDive
       </div>
 
       {/* Best For */}
-      <div className={`${isBrand ? 'bg-accent-soft border-border-accent-soft' : 'bg-surface border-border'} border rounded-xl p-4`}>
+      <div className={`${isBrand ? 'bg-accent-soft border-border-accent-soft' : 'bg-surface border-border'} border rounded-card p-4`}>
         <h4 className="text-sm font-semibold text-brand-strong mb-2">Best For:</h4>
         <p className="text-sm text-ink-body leading-relaxed">{tool.bestFor}</p>
       </div>
@@ -101,7 +101,7 @@ export function ComparisonDeepDive({ tool, isBrand = false }: ComparisonDeepDive
             href={tool.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block w-full text-center px-6 py-3 bg-canvas text-brand-strong font-semibold rounded-xl hover:bg-sunken transition-all border border-border"
+            className="inline-block w-full text-center px-6 py-3 bg-canvas text-brand-strong font-semibold rounded-control hover:bg-sunken transition-all border border-border"
           >
             Visit {tool.name}
           </a>

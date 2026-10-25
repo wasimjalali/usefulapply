@@ -71,8 +71,8 @@ export default function ContactPage() {
         <div className="max-w-4xl mx-auto">
           <div className="grid sm:grid-cols-2 gap-6 mb-12">
             <ScrollReveal delay={0} direction="left">
-            <div className="bg-surface-raised rounded-card p-8 border border-border text-center shadow-resting card-hover-lift">
-              <div className="w-14 h-14 bg-accent-soft-strong rounded-xl flex items-center justify-center mx-auto mb-4">
+            <div className="bg-surface-raised rounded-card p-8 border border-border text-center shadow-resting">
+              <div className="w-14 h-14 bg-accent-soft-strong rounded-control flex items-center justify-center mx-auto mb-4">
                 <Mail className="w-7 h-7 text-accent-strong" />
               </div>
               <h3 className="text-lg font-bold text-ink-body mb-2">Email Us</h3>
@@ -86,8 +86,8 @@ export default function ContactPage() {
             </div>
             </ScrollReveal>
             <ScrollReveal delay={200} direction="right">
-            <div className="bg-surface-raised rounded-card p-8 border border-border text-center shadow-resting card-hover-lift">
-              <div className="w-14 h-14 bg-accent-soft-strong rounded-xl flex items-center justify-center mx-auto mb-4">
+            <div className="bg-surface-raised rounded-card p-8 border border-border text-center shadow-resting">
+              <div className="w-14 h-14 bg-accent-soft-strong rounded-control flex items-center justify-center mx-auto mb-4">
                 <MessageSquare className="w-7 h-7 text-accent-strong" />
               </div>
               <h3 className="text-lg font-bold text-ink-body mb-2">Live Chat</h3>
@@ -103,7 +103,7 @@ export default function ContactPage() {
       <section className="py-8 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <ScrollReveal>
-          <div className="bg-surface-raised rounded-card p-8 md:p-10 border border-border shadow-elevated">
+          <div className="bg-surface-raised rounded-card p-8 md:p-10 border border-border shadow-resting">
             <h2 className="font-bold text-brand text-[22px] md:text-[28px] leading-[1.15] mb-6 text-center">
               Send us a message.
             </h2>
@@ -141,7 +141,7 @@ export default function ContactPage() {
                       maxLength={200}
                       value={formState.name}
                       onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-border-strong focus:border-focus-ring-soft focus:ring-2 focus:ring-focus-halo outline-none transition-all"
+                      className="w-full px-4 py-3 rounded-control border border-border focus:border-focus-ring-soft focus:ring-2 focus:ring-focus-halo outline-none transition-all"
                       placeholder="John Doe"
                     />
                   </div>
@@ -155,7 +155,7 @@ export default function ContactPage() {
                       required
                       value={formState.email}
                       onChange={(e) => setFormState({ ...formState, email: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-border-strong focus:border-focus-ring-soft focus:ring-2 focus:ring-focus-halo outline-none transition-all"
+                      className="w-full px-4 py-3 rounded-control border border-border focus:border-focus-ring-soft focus:ring-2 focus:ring-focus-halo outline-none transition-all"
                       placeholder="john@example.com"
                     />
                   </div>
@@ -170,7 +170,7 @@ export default function ContactPage() {
                     required
                     value={formState.subject}
                     onChange={(e) => setFormState({ ...formState, subject: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-border-strong focus:border-focus-ring-soft focus:ring-2 focus:ring-focus-halo outline-none transition-all bg-surface-raised"
+                    className="w-full px-4 py-3 rounded-control border border-border focus:border-focus-ring-soft focus:ring-2 focus:ring-focus-halo outline-none transition-all bg-surface-raised"
                   >
                     <option value="">Select a topic</option>
                     <option value="general">General Inquiry</option>
@@ -192,7 +192,7 @@ export default function ContactPage() {
                     rows={5}
                     value={formState.message}
                     onChange={(e) => setFormState({ ...formState, message: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-border-strong focus:border-focus-ring-soft focus:ring-2 focus:ring-focus-halo outline-none transition-all resize-none"
+                    className="w-full px-4 py-3 rounded-control border border-border focus:border-focus-ring-soft focus:ring-2 focus:ring-focus-halo outline-none transition-all resize-none"
                     placeholder="How can we help you?"
                   />
                 </div>
@@ -200,7 +200,7 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-accent-ink font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-elevated disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors duration-(--duration-fast) ease-standard shadow-elevated disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {loading ? (
                     'Sending...'
@@ -220,7 +220,6 @@ export default function ContactPage() {
 
       {/* FAQ Link */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-surface-inverse-raised relative overflow-hidden">
-        <div className="absolute inset-0 dot-grid opacity-[0.04]" />
         <ScrollReveal>
         <div className="max-w-3xl mx-auto text-center relative">
           <h2 className="font-bold text-ink-inverse text-[32px] md:text-[40px] leading-[1.1] mb-4">
@@ -231,7 +230,7 @@ export default function ContactPage() {
           </p>
           <Link
             href="/pricing"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors text-base"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors text-base"
           >
             View pricing and FAQ
             <ArrowRight className="w-4 h-4" />

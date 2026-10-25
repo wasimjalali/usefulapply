@@ -22,10 +22,10 @@ export function ComparisonUseCases({ useCases }: ComparisonUseCasesProps) {
 
         <div className="grid md:grid-cols-2 gap-6">
           {useCases.map((useCase, i) => (
-            <div key={i} className="bg-surface-raised rounded-card border border-border p-6 shadow-resting hover:shadow-elevated transition-shadow">
+            <div key={i} className="bg-surface-raised rounded-card border border-border p-6 shadow-resting">
               <h3 className="text-lg font-semibold text-brand mb-3">{useCase.title}</h3>
               <p className="text-sm text-ink-muted mb-4 leading-relaxed">{useCase.description}</p>
-              <div className="bg-surface rounded-xl p-4 border border-border">
+              <div className="bg-surface rounded-card p-4 border border-border">
                 <div className="flex items-start gap-2 mb-2">
                   <span className="text-xs font-semibold text-ink-accent uppercase tracking-wide">Recommended:</span>
                   <span className="text-sm font-semibold text-brand">{useCase.recommendedTool}</span>

@@ -80,7 +80,7 @@ export function FileUpload({
 
   if (selectedFile) {
     return (
-      <div className="border-2 border-border-accent-soft bg-accent-soft rounded-control p-4">
+      <div className="border border-border-accent-soft bg-accent-soft rounded-control p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-accent-soft-strong rounded-control">
@@ -110,7 +110,7 @@ export function FileUpload({
   return (
     <div
       {...getRootProps()}
-      className={`border-2 border-dashed rounded-control p-6 text-center cursor-pointer transition-colors ${
+      className={`border border-dashed rounded-control p-6 text-center cursor-pointer transition-colors ${
         isDragActive ? 'border-border-focus bg-brand-soft' : 'border-border-stronger hover:border-border-brand'
       } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
     >

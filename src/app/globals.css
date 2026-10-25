@@ -50,14 +50,9 @@
   --font-sans: var(--font-inter), 'Inter', system-ui, sans-serif;
 
   /* ─── Premium motion + depth tokens (UI premium pass) ───
-     Central language for easing, shadow depth and accent glow. Every
+     Central language for easing and shadow depth. Every
      shadow-sm/md/lg/xl utility in the app reads these, so depth stays
      consistent and a future dark mode is a token remap, not a rewrite. */
-
-  /* Easing: one calm decelerating curve for structure, one springy curve
-     reserved for pop moments (dialogs, ticks, badges). */
-  --ease-out-quart: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Brand-tinted shadow scale — overrides Tailwind's black-based defaults so
      every card, panel and modal picks up the warm navy tint at once. Kept
@@ -66,9 +61,6 @@
   --shadow-md: 0 1px 0 0 rgb(30 58 95 / 0.04), 0 10px 24px -12px rgb(30 58 95 / 0.16);
   --shadow-lg: 0 1px 0 0 rgb(30 58 95 / 0.05), 0 22px 46px -20px rgb(30 58 95 / 0.22);
   --shadow-xl: 0 1px 0 0 rgb(30 58 95 / 0.06), 0 32px 60px -24px rgb(30 58 95 / 0.28);
-
-  /* Accent glow (gold) — for primary-CTA hover and active emphasis only. */
-  --shadow-glow-gold: 0 0 0 1px rgb(212 168 83 / 0.18), 0 12px 30px -10px rgb(212 168 83 / 0.42);
 
   /* Radius roles (rounded-pill, rounded-control, rounded-card, rounded-modal). The same in
      every theme, so they are plain theme values. */
@@ -80,6 +72,10 @@
   /* Motion roles (ease-standard, ease-pop). Durations are on :root below. */
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Defaults for bare transition utilities. */
+  --default-transition-timing-function: var(--ease-standard);
+  --default-transition-duration: var(--duration-fast);
 }
 
 /* ─── Role tokens ───
@@ -155,9 +151,11 @@
   --depth-elevated: var(--shadow-md);
   --depth-floating: var(--shadow-lg);
 
-  /* Durations, used as duration-(--duration-fast) and duration-(--duration-base). */
+  /* Durations, used as duration-(--duration-fast), duration-(--duration-base) and duration-(--duration-slow)
+     (entrances and progress only). */
   --duration-fast: 150ms;
   --duration-base: 200ms;
+  --duration-slow: 400ms;
 
   /* PR 2 roles (shell, dashboard, chat) */
   --brand-soft-strong: var(--color-navy-100);
@@ -521,13 +519,8 @@ select:focus-visible {
 }
 
 /* Agent Progress Animations */
-.agent-progress-bar {
-  width: var(--progress-width, 0%);
-  transition: width 0.3s ease-in-out;
-}
-
 .agent-step-enter {
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn var(--duration-slow) var(--ease-standard);
 }
 
 @keyframes slideIn {
@@ -544,7 +537,7 @@ select:focus-visible {
 /* Premium shimmer bar — indeterminate progress indicator */
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
+  100% { transform: translateX(250%); }
 }
 
 .shimmer-bar {
@@ -555,96 +548,35 @@ select:focus-visible {
 .shimmer-bar::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--color-gold-300) 40%,
-    var(--color-gold-400) 50%,
-    var(--color-gold-300) 60%,
-    transparent 100%
-  );
-  animation: shimmer 1.8s ease-in-out infinite;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  animation: shimmer 1.8s var(--ease-standard) infinite;
 }
 
 /* Step completion pulse */
 @keyframes completePulse {
-  0% { box-shadow: 0 0 0 0 rgba(212, 168, 83, 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(212, 168, 83, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(212, 168, 83, 0); }
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 40%, transparent); }
+  70% { box-shadow: 0 0 0 6px color-mix(in oklab, var(--accent) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 0%, transparent); }
 }
 
 .step-complete-pulse {
-  animation: completePulse 0.6s ease-out;
-}
-
-/* Sub-action text fade cycle */
-/* Marketing page animations */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
-}
-
-@keyframes floatSlow {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-8px) rotate(1deg); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.animate-float-slow {
-  animation: floatSlow 8s ease-in-out infinite;
-}
-
-/* === Animated background system === */
-
-/* Floating rings - gentle orbit */
-/* Floating dots - slow drift */
-/* Light streaks - subtle pulse */
-/* Lightbox fade-in */
-/* Glassmorphism utility classes */
-.glass {
-  background: rgba(255, 255, 255, 0.6);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-}
-
-.glass-dark {
-  background: rgba(15, 27, 61, 0.4);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Card hover lift effect for marketing pages */
-.card-hover-lift {
-  transition: transform 0.3s var(--ease-out-quart), box-shadow 0.3s var(--ease-out-quart);
-}
-
-.card-hover-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  animation: completePulse var(--duration-slow) var(--ease-pop);
 }
 
 /* ─── Premium primitives (UI premium pass) ─── */
 
-/* Primary gold CTA: warms to a gold glow on hover and dips slightly on press.
-   Layered on top of existing bg-gold-400 / hover:bg-gold-500 utilities. */
+/* Primary CTA: lifts 1px with an elevated shadow on hover and dips on press.
+   Layered on top of bg-accent / hover:bg-accent-strong. */
 .cta-gold {
-  transition: background-color 0.2s var(--ease-out-quart),
-    box-shadow 0.2s var(--ease-out-quart),
-    transform 0.2s var(--ease-out-quart);
+  transition: background-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
 }
 .cta-gold:hover {
-  box-shadow: var(--shadow-glow-gold);
+  box-shadow: var(--depth-elevated);
   transform: translateY(-1px);
 }
 .cta-gold:active {
@@ -657,38 +589,38 @@ select:focus-visible {
   to { opacity: 1; transform: translateY(0); }
 }
 .panel-rise {
-  animation: panel-rise 0.42s var(--ease-out-quart) both;
+  animation: panel-rise var(--duration-slow) var(--ease-standard) both;
 }
 
-/* Active segmented-pill tab — premium treatment for app chrome (workspace
-   switcher, document tabs). A faint gold inset ring + soft navy drop reads
-   richer than a flat white pill in a still frame. Layered on top of bg-white. */
-.tab-pill-active {
-  box-shadow:
-    inset 0 0 0 1px rgb(212 168 83 / 0.28),
-    0 1px 0 0 rgb(255 255 255 / 0.9) inset,
-    0 4px 12px -6px rgb(30 58 95 / 0.30);
+/* Toast entrance. */
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-in {
+  animation: slide-in var(--duration-base) var(--ease-standard) backwards;
 }
 
-/* Eyebrow label with a small gradient accent dot — page-level labels only. */
+/* Pop entrance for small dialogs and popovers (ease-pop is for pop moments only). */
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-pop-in {
+  animation: pop-in var(--duration-base) var(--ease-pop) backwards;
+}
+
+/* Eyebrow label with a small accent dot, page-level labels only. */
 .eyebrow-dot::before {
   content: '';
   display: inline-block;
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--color-gold-300), var(--color-gold-500));
+  background: var(--accent);
   margin-right: 0.45rem;
   vertical-align: 1.5px;
 }
-
-/* Smooth FAQ expand/collapse */
-.faq-answer {
-  overflow: hidden;
-  transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out;
-}
-
-/* CV scaling is handled dynamically in CVPanel.tsx via ResizeObserver */
 
 /* Hide scrollbar utility */
 .scrollbar-hide {
@@ -698,126 +630,6 @@ select:focus-visible {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
-
-.glass-input {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.35) 50%,
-    rgba(245, 240, 235, 0.3) 100%
-  );
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  backdrop-filter: blur(20px) saturate(1.5);
-}
-
-/* Logo bar scroll animation — infinite marquee */
-/* Animated gradient border — for featured/popular cards */
-@property --gradient-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
-
-/* CTA pulse glow */
-/* Dot grid background pattern */
-.dot-grid {
-  background-image: radial-gradient(circle, rgba(30, 58, 95, 0.07) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-/* Subtle noise texture overlay */
-.noise-overlay::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Browser chrome mockup frame */
-.browser-frame {
-  background: linear-gradient(180deg, #f8f7f5 0%, #f0ede8 100%);
-  border: 1px solid #e0dbd2;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow:
-    0 25px 50px -12px rgba(30, 58, 95, 0.15),
-    0 8px 20px -8px rgba(30, 58, 95, 0.1);
-}
-
-/* Gradient text utility */
-.gradient-text-gold {
-  background: linear-gradient(135deg, #D4A853 0%, #C4932E 50%, #D4A853 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Section divider — angled */
-.section-divider-angle {
-  position: relative;
-}
-
-/* Stat card glow on hover */
-.stat-glow:hover {
-  box-shadow: 0 0 30px rgba(212, 168, 83, 0.15), 0 8px 24px -8px rgba(30, 58, 95, 0.1);
-}
-
-/* Gradient card top accent bar */
-.card-accent-gold {
-  border-top: 3px solid transparent;
-  border-image: linear-gradient(90deg, #D4A853, #C4932E) 1;
-}
-
-/* Floating badge animation */
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ETHEREAL CLOUD BACKGROUND ANIMATIONS
-   Soft 3D clouds with golden light streams — inspired by premium SaaS aesthetics
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* ─── Radial Gradient Utility ─── */
-.bg-gradient-radial {
-  background: radial-gradient(ellipse at center, var(--tw-gradient-from), var(--tw-gradient-to));
-}
-
-/* ─── Floating Cloud Shapes ─── */
-/* ─── Floating Platform Shapes (oval discs) ─── */
-/* ─── Golden Light Streams ─── */
-/* ─── Sparkle / Particle Effects ─── */
-/* ─── Ambient Glow Pulse ─── */
-/* ─── Gentle Breathing Effect ─── */
-/* ─── Ribbon Flow (SVG path) ─── */
-/* ─── Natural Cloud Drift Animations ─── */
-/* ─── Premium Aurora (hero background) ─── */
-@keyframes aurora-slow-1 {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  33%      { transform: translate3d(4%, -3%, 0) scale(1.08); }
-  66%      { transform: translate3d(-3%, 4%, 0) scale(0.96); }
-}
-@keyframes aurora-slow-2 {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50%      { transform: translate3d(-5%, 3%, 0) scale(1.12); }
-}
-@keyframes aurora-slow-3 {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1.04); opacity: 0.55; }
-  50%      { transform: translate3d(3%, -2%, 0) scale(0.94); opacity: 0.8; }
-}
-@keyframes aurora-shimmer {
-  0%, 100% { opacity: 0.35; }
-  50%      { opacity: 0.55; }
-}
-@keyframes conic-sweep {
-  0%   { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
-.animate-aurora-slow-1 { animation: aurora-slow-1 42s ease-in-out infinite; will-change: transform; }
-.animate-aurora-slow-2 { animation: aurora-slow-2 56s ease-in-out infinite; will-change: transform; }
-.animate-aurora-slow-3 { animation: aurora-slow-3 48s ease-in-out infinite; will-change: transform, opacity; }
-.animate-aurora-shimmer { animation: aurora-shimmer 8s ease-in-out infinite; }
-.animate-conic-sweep { animation: conic-sweep 90s linear infinite; will-change: transform; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SCROLL-DRIVEN MOTION (landing)
@@ -925,7 +737,7 @@ select:focus-visible {
 .stagger-rise > * {
   opacity: 0;
   transform: translateY(18px);
-  transition: opacity 0.5s var(--ease-out-quart), transform 0.5s var(--ease-out-quart);
+  transition: opacity var(--duration-slow) var(--ease-standard), transform var(--duration-slow) var(--ease-standard);
 }
 [data-inview='true'] .stagger-rise > * { opacity: 1; transform: none; }
 [data-inview='true'] .stagger-rise > :nth-child(2) { transition-delay: 60ms; }
@@ -951,7 +763,7 @@ select:focus-visible {
 
 /* ═══════════════════════════════════════════════════════════════════════════
    REDUCED MOTION — single blanket gate (UI premium pass)
-   Honors prefers-reduced-motion across the whole app, not just the aurora.
+   Honors prefers-reduced-motion across the whole app.
    Decorative loops stop entirely; functional transitions collapse to near-zero
    so nothing depends on animation and no content stays hidden.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -965,32 +777,8 @@ select:focus-visible {
     scroll-behavior: auto !important;
   }
 
-  /* Kill the ambient, infinitely-looping background decoration outright. */
-  .animate-aurora-slow-1,
-  .animate-aurora-slow-2,
-  .animate-aurora-slow-3,
-  .animate-aurora-shimmer,
-  .animate-conic-sweep,
-  .animate-float,
-  .animate-float-slow,
-  .animate-float-delayed,
-  .animate-pulse-soft,
-  .animate-shimmer,
-  .animate-scroll-logos,
-  .animate-badge-float,
-  .cta-glow,
-  [class*="animate-ring-float"],
-  [class*="animate-dot-float"],
-  [class*="animate-streak"],
-  [class*="animate-cloud"],
-  [class*="animate-platform-float"],
-  [class*="animate-light-stream"],
-  [class*="animate-sparkle"],
-  [class*="animate-glow"],
-  [class*="animate-breathe"],
-  [class*="animate-ribbon"],
-  [class*="animate-golden-glow"],
-  .animated-border::before { animation: none !important; }
+  /* The indeterminate bar holds still at full width instead of parking a 40% pill at the left. */
+  .shimmer-bar::after { animation: none !important; width: 100%; }
 }
 
 /* CV and cover letter fonts: Arimo and Gelasio (SIL OFL 1.1, metric twins of Arial and Georgia).

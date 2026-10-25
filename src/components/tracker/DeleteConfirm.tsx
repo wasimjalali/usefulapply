@@ -23,7 +23,7 @@ export function DeleteConfirm({
   onClose,
   onConfirm,
 }: DeleteConfirmProps) {
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const [position, setPosition] = useState<{ top: number; left: number; flip: boolean } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const label = company.trim() ? `Delete ${company}?` : 'Delete this application?';
 
@@ -36,6 +36,7 @@ export function DeleteConfirm({
       setPosition({
         top: flip ? Math.max(8, rect.top - PANEL_HEIGHT - 4) : below,
         left: Math.min(Math.max(8, rect.right - PANEL_WIDTH), window.innerWidth - PANEL_WIDTH - 8),
+        flip,
       });
     };
     place();
@@ -75,7 +76,7 @@ export function DeleteConfirm({
           left: position?.left ?? -9999,
           width: PANEL_WIDTH,
         }}
-        className="z-50 rounded-card border border-border bg-surface p-3 shadow-elevated focus:outline-none"
+        className={`z-50 ${position?.flip ? 'origin-bottom-right' : 'origin-top-right'} rounded-card border border-border bg-surface p-3 shadow-elevated animate-pop-in focus:outline-none`}
       >
         <p className="text-[13px] font-semibold text-ink">{label}</p>
         {error && <p className="mt-2 text-xs text-danger">{error}</p>}

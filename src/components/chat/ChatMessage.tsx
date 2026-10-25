@@ -145,7 +145,7 @@ export function ChatMessage({
   const compactScreening = isSpine && !!screeningAnswers && answersInDoc;
   const surfaceClassName = message.role === 'user'
     ? isSpine
-      ? 'rounded-card rounded-br-sm border border-border bg-surface-raised px-3.5 py-3 shadow-resting'
+      ? 'rounded-card rounded-br-none border border-border bg-surface-raised px-3.5 py-3 shadow-resting'
       : 'rounded-card border border-border bg-canvas px-4 py-3 shadow-resting'
     : useElevatedSurface
       ? 'rounded-card border border-border bg-surface-raised px-4 py-3 shadow-resting'
@@ -156,8 +156,8 @@ export function ChatMessage({
       <div className="group/msg flex justify-end">
         <div className={`max-w-[86%] ${surfaceClassName}`}>
           {isLongMessage ? (
-            <div className="relative">
-              <div className={`text-sm text-ink-body overflow-hidden ${isExpanded ? '' : 'max-h-24'}`}>
+            <div>
+              <div className={`text-sm text-ink-body overflow-hidden ${isExpanded ? '' : 'max-h-[5lh]'}`}>
                 <MarkdownText content={message.content} className="text-sm text-ink-body" />
               </div>
               <button
@@ -239,18 +239,15 @@ export function ChatMessage({
             </div>
           ) : isLongMessage ? (
             /* Collapsible content for long user messages */
-            <div className="relative">
-              <div className={`text-sm text-ink-body overflow-hidden transition-all duration-300 ${
-                isExpanded ? '' : 'max-h-24'
+            <div>
+              <div className={`text-sm text-ink-body overflow-hidden transition-all duration-(--duration-base) ${
+                isExpanded ? '' : 'max-h-[5lh]'
               }`}>
                 <MarkdownText
                   content={message.content}
                   className="text-sm text-ink-body"
                 />
               </div>
-              {!isExpanded && (
-                <div className="absolute bottom-6 left-0 right-0 h-12 bg-gradient-to-t from-cream-200 to-transparent pointer-events-none" />
-              )}
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="flex items-center gap-1 mt-2 text-xs font-medium text-brand hover:text-brand-strong transition-colors cursor-pointer"
@@ -316,7 +313,7 @@ export function ChatMessage({
           }`}>
             <button
               onClick={() => onFeedback(message.id, message.content, 'positive')}
-              className={`p-1.5 rounded transition-colors cursor-pointer ${
+              className={`p-1.5 rounded-control transition-colors cursor-pointer ${
                 feedback === 'positive'
                   ? 'text-ink-accent bg-accent-soft-strong'
                   : 'text-ink-muted hover:text-ink-body hover:bg-sunken'
@@ -328,7 +325,7 @@ export function ChatMessage({
             </button>
             <button
               onClick={() => onFeedback(message.id, message.content, 'negative')}
-              className={`p-1.5 rounded transition-colors cursor-pointer ${
+              className={`p-1.5 rounded-control transition-colors cursor-pointer ${
                 feedback === 'negative'
                   ? 'text-danger-bright bg-danger-soft'
                   : 'text-ink-muted hover:text-ink-body hover:bg-sunken'
@@ -340,7 +337,7 @@ export function ChatMessage({
             </button>
             <button
               onClick={handleCopy}
-              className="p-1.5 text-ink-muted hover:text-ink-body hover:bg-sunken rounded transition-colors cursor-pointer"
+              className="p-1.5 text-ink-muted hover:text-ink-body hover:bg-sunken rounded-control transition-colors cursor-pointer"
               title="Copy message"
               aria-label="Copy message"
             >

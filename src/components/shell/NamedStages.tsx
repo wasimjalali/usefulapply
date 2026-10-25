@@ -61,7 +61,7 @@ export function NamedStages({ stages, percent }: NamedStagesProps) {
         <div className="mt-1 flex items-center gap-3">
           <div className="h-1 flex-1 overflow-hidden rounded-pill bg-sunken">
             <div
-              className="h-full bg-accent transition-all duration-300"
+              className="h-full bg-accent transition-all duration-(--duration-base)"
               style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
             />
           </div>

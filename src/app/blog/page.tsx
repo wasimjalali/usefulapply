@@ -75,7 +75,7 @@ export default function BlogPage() {
                 {/* Featured hero: horizontal split */}
                 {featuredPost && (
                   <Link href={`/blog/${featuredPost.slug}`} className="block group">
-                    <article className="bg-surface rounded-card border border-border overflow-hidden shadow-resting hover:shadow-elevated hover:border-border-accent transition-all duration-(--duration-base) grid lg:grid-cols-2">
+                    <article className="bg-surface rounded-card border border-border overflow-hidden shadow-resting hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard grid lg:grid-cols-2">
                       <div className="relative w-full aspect-[16/10] lg:aspect-auto lg:min-h-[380px] bg-canvas">
                         {featuredPost.ogImage ? (
                           <Image
@@ -86,7 +86,7 @@ export default function BlogPage() {
                             {...(getBlurDataUrl(featuredPost.ogImage)
                               ? { placeholder: 'blur' as const, blurDataURL: getBlurDataUrl(featuredPost.ogImage) }
                               : {})}
-                            className="object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                            className="object-cover group-hover:scale-[1.02] transition-transform duration-(--duration-slow)"
                             sizes="(max-width: 1024px) 100vw, 640px"
                           />
                         ) : (
@@ -147,7 +147,7 @@ export default function BlogPage() {
                       const colors = CATEGORY_COLORS[post.category] || { bg: 'bg-surface', text: 'text-ink-body', border: 'border-border' };
                       return (
                         <Link key={post.slug} href={`/blog/${post.slug}`} className="block group">
-                          <article className="bg-surface rounded-card border border-border h-full flex flex-col overflow-hidden shadow-resting hover:shadow-elevated hover:border-border-accent transition-all duration-(--duration-base)">
+                          <article className="bg-surface rounded-card border border-border h-full flex flex-col overflow-hidden shadow-resting hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard">
                             <div className="relative aspect-[16/8] bg-canvas">
                               {post.ogImage ? (
                                 <Image
@@ -157,7 +157,7 @@ export default function BlogPage() {
                                   {...(getBlurDataUrl(post.ogImage)
                                     ? { placeholder: 'blur' as const, blurDataURL: getBlurDataUrl(post.ogImage) }
                                     : {})}
-                                  className="object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                                  className="object-cover group-hover:scale-[1.03] transition-transform duration-(--duration-base) ease-standard"
                                   sizes="(max-width: 768px) 100vw, 50vw"
                                 />
                               ) : (
@@ -216,7 +216,7 @@ export default function BlogPage() {
                       const colors = CATEGORY_COLORS[post.category] || { bg: 'bg-surface', text: 'text-ink-body', border: 'border-border' };
                       return (
                         <Link key={post.slug} href={`/blog/${post.slug}`} className="block group">
-                          <article className="bg-surface rounded-card border border-border h-full flex flex-col overflow-hidden shadow-resting hover:shadow-elevated hover:border-border-accent transition-all duration-(--duration-base)">
+                          <article className="bg-surface rounded-card border border-border h-full flex flex-col overflow-hidden shadow-resting hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard">
                             <div className="aspect-video relative bg-canvas">
                               {post.ogImage ? (
                                 <Image
@@ -226,7 +226,7 @@ export default function BlogPage() {
                                   {...(getBlurDataUrl(post.ogImage)
                                     ? { placeholder: 'blur' as const, blurDataURL: getBlurDataUrl(post.ogImage) }
                                     : {})}
-                                  className="object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                                  className="object-cover group-hover:scale-[1.03] transition-transform duration-(--duration-base) ease-standard"
                                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                 />
                               ) : (
@@ -284,7 +284,7 @@ export default function BlogPage() {
             </p>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control shadow-resting transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors"
             >
               Start free
             </Link>

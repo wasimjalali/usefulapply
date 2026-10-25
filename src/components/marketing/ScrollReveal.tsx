@@ -46,7 +46,7 @@ export function ScrollReveal({
       style={{
         opacity: isInView ? 1 : 0,
         transform: isInView ? 'none' : getTransform(),
-        transition: `opacity ${duration}ms ease-out ${delay}ms, transform ${duration}ms ease-out ${delay}ms`,
+        transition: `opacity ${duration}ms var(--ease-standard) ${delay}ms, transform ${duration}ms var(--ease-standard) ${delay}ms`,
         willChange: 'opacity, transform',
       }}
     >

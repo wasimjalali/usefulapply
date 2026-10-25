@@ -28,7 +28,7 @@ export default function NotFound() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
             <Link
               href="/"
-              className="flex flex-col items-center p-6 bg-surface-raised border-2 border-border-brand-soft/40 rounded-xl hover:border-accent hover:shadow-floating transition-all group"
+              className="flex flex-col items-center p-6 bg-surface-raised border border-border rounded-card shadow-resting hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard group"
             >
               <div className="w-12 h-12 rounded-pill bg-brand flex items-center justify-center mb-3 group-hover:bg-accent-strong transition-colors">
                 <Home className="w-6 h-6 text-brand-ink" />
@@ -39,7 +39,7 @@ export default function NotFound() {
 
             <Link
               href="/dashboard"
-              className="flex flex-col items-center p-6 bg-surface-raised border-2 border-border-brand-soft/40 rounded-xl hover:border-accent hover:shadow-floating transition-all group"
+              className="flex flex-col items-center p-6 bg-surface-raised border border-border rounded-card shadow-resting hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard group"
             >
               <div className="w-12 h-12 rounded-pill bg-brand flex items-center justify-center mb-3 group-hover:bg-accent-strong transition-colors">
                 <FileText className="w-6 h-6 text-brand-ink" />
@@ -50,7 +50,7 @@ export default function NotFound() {
 
             <Link
               href="/blog"
-              className="flex flex-col items-center p-6 bg-surface-raised border-2 border-border-brand-soft/40 rounded-xl hover:border-accent hover:shadow-floating transition-all group"
+              className="flex flex-col items-center p-6 bg-surface-raised border border-border rounded-card shadow-resting hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard group"
             >
               <div className="w-12 h-12 rounded-pill bg-brand flex items-center justify-center mb-3 group-hover:bg-accent-strong transition-colors">
                 <BookOpen className="w-6 h-6 text-brand-ink" />
@@ -61,7 +61,7 @@ export default function NotFound() {
 
             <Link
               href="/ai-job-application"
-              className="flex flex-col items-center p-6 bg-surface-raised border-2 border-border-brand-soft/40 rounded-xl hover:border-accent hover:shadow-floating transition-all group"
+              className="flex flex-col items-center p-6 bg-surface-raised border border-border rounded-card shadow-resting hover:shadow-elevated transition-shadow duration-(--duration-base) ease-standard group"
             >
               <div className="w-12 h-12 rounded-pill bg-brand flex items-center justify-center mb-3 group-hover:bg-accent-strong transition-colors">
                 <Search className="w-6 h-6 text-brand-ink" />
@@ -72,7 +72,7 @@ export default function NotFound() {
           </div>
 
           {/* Additional Help */}
-          <div className="bg-surface-raised border border-border-brand-soft/40 rounded-xl p-6 max-w-2xl mx-auto">
+          <div className="bg-surface-raised border border-border-brand-soft/40 rounded-card p-6 max-w-2xl mx-auto">
             <h2 className="text-xl font-semibold text-brand-strong mb-2">Need help?</h2>
             <p className="text-ink-body mb-4">
               If you followed a link to get here, please{' '}

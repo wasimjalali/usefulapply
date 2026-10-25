@@ -179,13 +179,13 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
                 <span className="text-xs text-ink-inverse-soft">Discard your text?</span>
                 <button
                   onClick={() => { toast.pin?.onDiscard(); onClose(); }}
-                  className="rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft"
+                  className="rounded-control border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft"
                 >
                   Discard
                 </button>
                 <button
                   onClick={() => setConfirming(false)}
-                  className="rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft"
+                  className="rounded-control border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft"
                 >
                   Keep
                 </button>
@@ -196,14 +196,14 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
                   <button
                     key={action.label}
                     onClick={() => { action.onClick(); onClose(); }}
-                    className="rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft"
+                    className="rounded-control border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft"
                   >
                     {action.label}
                   </button>
                 ))}
                 <button
                   onClick={() => setConfirming(true)}
-                  className="rounded px-2 py-1 text-xs text-ink-inverse-dim underline hover:text-ink-inverse"
+                  className="rounded-control px-2 py-1 text-xs text-ink-inverse-dim underline hover:text-ink-inverse"
                 >
                   Dismiss
                 </button>
@@ -218,8 +218,8 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
                 key={action.label}
                 onClick={() => { action.onClick(); onClose(); }}
                 className={toast.type === 'success' || toast.type === 'info'
-                  ? 'rounded border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft'
-                  : 'rounded border border-ink-body/30 px-2 py-1 text-xs font-medium text-ink-body hover:bg-surface-raised/60'}
+                  ? 'rounded-control border border-border-inverse-soft px-2 py-1 text-xs text-ink-inverse-soft hover:bg-surface-inverse-soft'
+                  : 'rounded-control border border-ink-body/30 px-2 py-1 text-xs font-medium text-ink-body hover:bg-surface-raised'}
               >
                 {action.label}
               </button>
@@ -229,7 +229,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
       </div>
       {!toast.pin && <button
         onClick={onClose}
-        className={`p-0.5 rounded transition-colors ${toast.type === 'success' || toast.type === 'info' ? 'text-ink-inverse-dim hover:text-ink-inverse' : 'text-ink-muted hover:text-ink-body'}`}
+        className={`p-0.5 rounded-control transition-colors ${toast.type === 'success' || toast.type === 'info' ? 'text-ink-inverse-dim hover:text-ink-inverse' : 'text-ink-muted hover:text-ink-body'}`}
         aria-label="Dismiss"
       >
         <X className="h-4 w-4" />

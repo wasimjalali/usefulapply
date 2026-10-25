@@ -56,7 +56,7 @@ export const content: GeoContent = {
         <p className="text-ink-body leading-relaxed mb-4">
               Timing is the difference between helpful persistence and being annoying.
             </p>,
-        <div className="bg-surface border border-border rounded-xl p-6 mb-6">
+        <div className="bg-surface border border-border rounded-card p-6 mb-6">
               <p className="text-ink-body leading-relaxed mb-3">
                 <strong>Standard timeline: 7 to 10 business days after submitting your
                 application.</strong>
@@ -97,20 +97,20 @@ export const content: GeoContent = {
               A good follow-up email does three things:
             </p>,
         <div className="space-y-4 mb-6">
-              <div className="bg-surface-raised border border-border rounded-xl p-6">
+              <div className="bg-surface-raised border border-border rounded-card p-6">
                 <h3 className="text-lg font-bold text-ink-body mb-2">1. Reminds them who you are</h3>
                 <p className="text-ink-muted leading-relaxed">
                   State the role and when you applied. Don&apos;t make them search their inbox.
                 </p>
               </div>
-              <div className="bg-surface-raised border border-border rounded-xl p-6">
+              <div className="bg-surface-raised border border-border rounded-card p-6">
                 <h3 className="text-lg font-bold text-ink-body mb-2">2. Reiterates your interest and fit</h3>
                 <p className="text-ink-muted leading-relaxed">
                   Briefly reinforce your fit with one key skill or achievement. Not a repeat of
                   your cover letter, just one relevant data point.
                 </p>
               </div>
-              <div className="bg-surface-raised border border-border rounded-xl p-6">
+              <div className="bg-surface-raised border border-border rounded-card p-6">
                 <h3 className="text-lg font-bold text-ink-body mb-2">3. Makes it easy for them to respond</h3>
                 <p className="text-ink-muted leading-relaxed">
                   Ask a specific question (&quot;Has there been any update on the hiring
@@ -167,7 +167,7 @@ export const content: GeoContent = {
       eyebrow: "Real Example",
       heading: "What an AI-Generated Follow-Up Email Looks Like",
       body: body(
-        <div className="bg-document border-l-4 border-accent-strong rounded-xl p-8 shadow-resting">
+        <div className="bg-document border-l-4 border-accent-strong rounded-card p-8 shadow-resting">
               <p className="text-sm font-semibold text-ink-body mb-2">Subject:</p>
               <p className="text-ink-body mb-6">Following up: Senior Data Analyst application submitted March 15</p>
 
@@ -190,7 +190,7 @@ export const content: GeoContent = {
                 <p>Best regards,<br />[Your Name]<br />[LinkedIn Profile or Portfolio Link]</p>
               </div>
             </div>,
-        <div className="mt-6 bg-surface border border-border rounded-xl p-6">
+        <div className="mt-6 bg-surface border border-border rounded-card p-6">
               <p className="text-ink-body leading-relaxed mb-2">
                 <strong>Why this works:</strong>
               </p>
@@ -255,13 +255,13 @@ export const content: GeoContent = {
     actions: <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
       <Link
         href="/dashboard"
-        className="px-10 py-4 bg-gradient-to-r from-gold-400 to-gold-500 text-accent-ink font-semibold rounded-xl hover:from-gold-500 hover:to-gold-600 transition-all shadow-floating text-lg inline-flex items-center gap-2"
+        className="px-10 py-4 bg-accent hover:bg-accent-strong text-accent-ink font-semibold rounded-control transition-colors duration-(--duration-fast) ease-standard text-lg inline-flex items-center gap-2"
       >
         Start free
       </Link>
       <Link
         href="/ai-job-application"
-        className="px-10 py-4 glass-dark text-ink-inverse font-semibold rounded-xl hover:bg-ink-inverse/30 hover:shadow-xl hover:scale-[1.02] hover:border-accent/50 transition-all duration-300 text-lg inline-flex items-center gap-2"
+        className="px-10 py-4 border border-border-inverse-raised bg-ink-inverse/10 text-ink-inverse font-semibold rounded-control hover:bg-ink-inverse/20 transition-colors duration-(--duration-base) ease-standard text-lg inline-flex items-center gap-2"
       >
         <ArrowLeft className="w-5 h-5" />
         Back to Guide

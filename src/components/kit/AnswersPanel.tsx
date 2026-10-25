@@ -97,7 +97,7 @@ export function AnswersPanel({ toolbarPortal }: AnswersPanelProps) {
     <>
       {toolbarPortal && createPortal(toolbar, toolbarPortal)}
       <div className="h-full overflow-auto bg-canvas px-5 pb-6 pt-4">
-        <div className="mx-auto w-full max-w-[640px] rounded-card bg-document px-9 py-8 shadow-elevated">
+        <div className="mx-auto w-full max-w-[640px] rounded-card bg-document px-9 py-8 shadow-resting">
           <h2 className="text-lg font-semibold text-ink">
             Screening answers{company ? ` · ${company}` : ''}
           </h2>
