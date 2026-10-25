@@ -19,7 +19,7 @@ import { useUIStore } from '@/store/useUIStore';
 import { openSettings } from '@/store/useSettingsStore';
 import { fileDisplayUrl } from '@/storage/paths';
 import { useJobFeedBadge } from '@/hooks/useJobFeedBadge';
-import { deriveApplicationStatus } from '@/components/shell/application-status';
+import { sessionHasKit } from '@/components/shell/application-status';
 import { SIDEBAR_WIDTH } from '@/components/shell/dimensions';
 import { useChatHistoryLoad } from '@/components/chat/chat-history-load';
 
@@ -37,7 +37,10 @@ function groupApplications<T extends { updatedAt: string }>(items: readonly T[],
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
   const todayStart = startOfToday.getTime();
-  const weekStart = todayStart - 7 * 24 * 60 * 60 * 1000;
+  // Seven calendar days back, not 7 x 24 hours: a week that crosses a clock change is still seven days.
+  const startOfWeek = new Date(startOfToday);
+  startOfWeek.setDate(startOfWeek.getDate() - 7);
+  const weekStart = startOfWeek.getTime();
   const buckets: Record<ApplicationGroupLabel, Array<{ item: T; at: number }>> = { Today: [], 'Previous 7 days': [], Older: [] };
   for (const item of items) {
     const parsed = Date.parse(item.updatedAt);
@@ -73,9 +76,20 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
   const activeTab = useUIStore((s) => s.activeTab);
   const setActiveTab = useUIStore((s) => s.setActiveTab);
   const jobFeedBadge = useJobFeedBadge(Boolean(user), user?.id ?? null);
-  // When the list was grouped by day. Taken once per mount: a sidebar left open past midnight regroups on
-  // the next load, which is soon enough for day labels.
-  const [groupedAt] = useState(() => Date.now());
+  // When the list was grouped by day: again whenever the window comes back into view, so a tab left open
+  // overnight does not keep yesterday under Today.
+  const [groupedAt, setGroupedAt] = useState(() => Date.now());
+  useEffect(() => {
+    const regroup = () => {
+      if (document.visibilityState === 'visible') setGroupedAt(Date.now());
+    };
+    window.addEventListener('focus', regroup);
+    document.addEventListener('visibilitychange', regroup);
+    return () => {
+      window.removeEventListener('focus', regroup);
+      document.removeEventListener('visibilitychange', regroup);
+    };
+  }, []);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [openingSessionId, setOpeningSessionId] = useState<string | null>(null);
@@ -242,21 +256,20 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
         </button>
       </nav>
 
-      <div className="mt-5 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto" role="region" aria-label="Applications">
+      {/* The inset gives the rows' focus outline room inside the scroll region, which would clip it. */}
+      <div className="-mx-1 mt-5 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1 pb-1" role="region" aria-label="Applications">
         {sessions.length === 0 && sessionsKnown && (
-          <p className="px-2.5 text-[13px] leading-5 text-ink-faint">Applications you start show up here.</p>
+          <p className="px-2.5 text-[13px] leading-5 text-ink-muted">Applications you start show up here.</p>
         )}
         {groups.map((group) => (
           <section key={group.label} aria-label={group.label}>
-            <p className="px-2.5 pb-1.5 text-xs font-medium text-ink-faint">{group.label}</p>
+            <p className="px-2.5 pb-1.5 text-xs font-medium text-ink-muted">{group.label}</p>
             <ul className="flex flex-col gap-px">
               {group.items.map((session) => {
                 const isCurrent = currentSession?.id === session.id && activeTab !== 'jobs' && activeTab !== 'tracker';
-                const status = deriveApplicationStatus(session, {
-                  isCurrent,
-                  isWorking: isCurrent && isWorking,
-                });
                 const working = isCurrent && isWorking;
+                // A draft is an application without a kit, whichever workspace is open.
+                const draft = !sessionHasKit(session);
                 return (
                   <li key={session.id}>
                     <button
@@ -279,8 +292,8 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
                       </span>
                       {working ? (
                         <Loader2 className="h-3.5 w-3.5 flex-shrink-0 animate-spin text-ink-muted" aria-label="Working" />
-                      ) : status === 'Drafted' ? (
-                        <span className="flex-shrink-0 text-[11px] text-ink-faint">Draft</span>
+                      ) : draft ? (
+                        <span className="flex-shrink-0 text-[11px] text-ink-muted">Draft</span>
                       ) : null}
                     </button>
                   </li>
@@ -292,7 +305,7 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
       </div>
 
       <div className="mt-2 flex h-12 items-center gap-2.5 pl-2 pr-0.5">
-        <span className="inline-flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center overflow-hidden rounded-pill bg-sunken-strong text-[11px] font-semibold text-ink">
+        <span className="inline-flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center overflow-hidden rounded-pill bg-brand-soft-strong text-[11px] font-semibold text-ink">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -302,12 +315,12 @@ export function Sidebar({ isWorking = false }: SidebarProps) {
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-medium leading-4 text-ink">{displayName}</p>
-          <p className="text-xs leading-4 text-ink-faint">{planLabel}</p>
+          <p className="text-xs leading-4 text-ink-muted">{planLabel}</p>
         </div>
         <button
           type="button"
           onClick={() => openSettings('general')}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-control text-ink-muted transition-colors duration-(--duration-fast) hover:bg-surface hover:text-ink"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-pill text-ink-muted transition-colors duration-(--duration-fast) hover:bg-surface hover:text-ink"
           aria-label="Open settings"
           title="Settings"
         >

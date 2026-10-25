@@ -3,6 +3,7 @@ import { mkdirSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Locator } from '@playwright/test';
 import { generateKitThroughUi, signedInPage, waitForStored } from '../lib/app';
+import { openLocalD1 } from '../lib/sqlite';
 
 /**
  * (o) The composer and the sidebar, on a signed-in account with a kit made through the product on the
@@ -15,6 +16,22 @@ import { generateKitThroughUi, signedInPage, waitForStored } from '../lib/app';
  * Every state is saved as a screenshot, and the composer growing is recorded and cut to frames at 30 fps
  * (ffmpeg) so each frame can be reviewed. Artifacts go to the test's output under verify/<branch>/.
  */
+
+/** Two applications without a kit, last worked on 3 and 30 days ago. */
+function seedOlderDrafts(userId: string): void {
+  const db = openLocalD1();
+  try {
+    const day = 24 * 60 * 60 * 1000;
+    for (const [company, title, ago] of [['Harbor Freight Lines', 'Financial Planning Analyst', 3], ['Lakeview Health', 'Forecasting Analyst', 30]] as const) {
+      const at = new Date(Date.now() - ago * day).toISOString();
+      db.prepare(
+        "INSERT INTO application_sessions (id, user_id, job_title, company, job_description, matching_skills, missing_skills, suggestions, cv_edits, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'An ad.', '[]', '[]', '[]', '[]', 'drafted', ?, ?)",
+      ).run(crypto.randomUUID(), userId, title, company, at, at);
+    }
+  } finally {
+    db.close();
+  }
+}
 
 const LONG_MESSAGE = 'Rewrite my summary so it leads with the forecast accuracy work. Keep it under three lines, and mention Power BI only if it fits naturally.';
 
@@ -30,6 +47,7 @@ test('(o) the composer grows from a pill to a box and sends on Enter; the sideba
   try {
     await generateKitThroughUi(page);
     await waitForStored(user.id, (row) => row.generation_status === 'succeeded', 'kit persisted');
+    seedOlderDrafts(user.id);
     await page.reload();
     await page.waitForLoadState('networkidle');
 
@@ -45,6 +63,13 @@ test('(o) the composer grows from a pill to a box and sends on Enter; the sideba
     const row = sidebar.getByRole('button', { name: /Northwind Foods/ });
     await expect(row).toHaveAttribute('aria-current', 'page');
     await expect(sidebar.getByRole('button', { name: 'New application' })).toBeVisible();
+    // Older applications under their own days, newest group first, each draft marked as one.
+    const labels = await sidebar.locator('section > p').allTextContents();
+    expect(labels).toEqual(['Today', 'Previous 7 days', 'Older']);
+    for (const company of ['Harbor Freight Lines', 'Lakeview Health']) {
+      await expect(sidebar.getByRole('button', { name: new RegExp(company) })).toContainText('Draft');
+    }
+    await expect(row).not.toContainText('Draft');
     await page.screenshot({ path: testInfo.outputPath('1-dashboard-at-rest.png') });
     await sidebar.screenshot({ path: testInfo.outputPath('2-sidebar-at-rest.png') });
 
@@ -57,8 +82,26 @@ test('(o) the composer grows from a pill to a box and sends on Enter; the sideba
     expect(restHeight).toBeLessThan(60);
     await composer.screenshot({ path: testInfo.outputPath('3-composer-at-rest.png') });
 
-    // One line: still a pill, Send live.
+    // Typed a character at a time through every length up to three lines, the composer settles after each one:
+    // never flipping between the pill and the box (a text can wrap in the pill and fit in the wider box).
     await field.click();
+    const radii: number[] = [];
+    for (const character of LONG_MESSAGE) {
+      await field.press(character === ' ' ? 'Space' : character);
+      const samples: number[] = [];
+      for (let sample = 0; sample < 3; sample += 1) {
+        await page.waitForTimeout(40);
+        samples.push(Number.parseFloat(await borderRadius(composer)));
+      }
+      expect(new Set(samples).size, `stable at ${(await field.inputValue()).length} characters: ${samples.join(', ')}`).toBe(1);
+      radii.push(samples[0]);
+    }
+    // It went from the pill to the box once, and stayed.
+    const changes = radii.filter((radius, index) => index > 0 && radius !== radii[index - 1]).length;
+    expect(changes, `radius changes while typing: ${radii.join(',')}`).toBe(1);
+    await field.fill('');
+
+    // One line: still a pill, Send live.
     await field.pressSequentially('Make the summary shorter', { delay: 20 });
     await expect(send).toBeEnabled();
     expect(Number.parseFloat(await borderRadius(composer))).toBeGreaterThan(100);
@@ -80,11 +123,22 @@ test('(o) the composer grows from a pill to a box and sends on Enter; the sideba
     await field.press('Enter');
     await expect(field).toHaveValue('');
     await expect.poll(async () => Number.parseFloat(await borderRadius(composer))).toBeGreaterThan(100);
+    await expect(page.getByText(/Thanks\./).first()).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('6-after-send.png') });
+    // A click on Send leaves the field focused, ready for the next message.
+    // (The field is busy while the reply comes in.)
+    await expect(field).toBeEnabled({ timeout: 60_000 });
+    await field.fill('One more change');
+    await expect(send).toBeEnabled({ timeout: 60_000 });
+    await send.click();
+    await expect(field).toBeFocused();
 
-    // Keyboard: focus shows on a navigation row.
+    // Keyboard: focus moves to the next row and shows as an outline.
     await sidebar.getByRole('button', { name: 'Search' }).focus();
     await page.keyboard.press('Tab');
+    const jobBoard = sidebar.getByRole('button', { name: /^Job Board/ });
+    await expect(jobBoard).toBeFocused();
+    expect(await jobBoard.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe('none');
     await sidebar.screenshot({ path: testInfo.outputPath('7-sidebar-focus-visible.png') });
 
     // The Job Board open: its row is the raised one, the application's is not.

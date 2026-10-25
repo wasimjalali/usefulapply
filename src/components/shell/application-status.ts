@@ -31,13 +31,3 @@ export function deriveApplicationStatus(
   }
   return 'Drafted';
 }
-
-export function statusPillClass(status: ApplicationStatusLabel): string {
-  if (status === 'Drafted') {
-    return 'bg-accent-soft-strong text-accent-soft-ink';
-  }
-  if (status === 'Applied') {
-    return 'bg-success-soft text-success-strong';
-  }
-  return 'bg-brand-soft text-ink';
-}
