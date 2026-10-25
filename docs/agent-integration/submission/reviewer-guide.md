@@ -37,7 +37,7 @@ To revoke access at any point, go to Settings, Connected apps in the web app. Th
 
 ## Test script
 
-Run each step in a normal conversation. The server has 43 tools: 13 read, 24 free writes and 6 that need the Spend permission. Five of those six use credits. `draft_screening_answers` is free. This script runs every one. A client that shows tool calls lets you see which tool ran.
+Run each step in a normal conversation. The server has 45 tools: 13 read, 26 free writes and 6 that need the Spend permission. Five of those six use credits. `draft_screening_answers` is free. This script runs every one. A client that shows tool calls lets you see which tool ran.
 
 ### 1. Read tools (no credits, scope Read)
 
@@ -67,7 +67,7 @@ Run each step in a normal conversation. The server has 43 tools: 13 read, 24 fre
 21. "Export the Halcyon CV as a PDF and the cover letter as a Word file." Expect `export_documents` with signed links. Open them. The PDF has selectable text. Links expire after 15 minutes.
 22. "Export the Fjordwerk cover letter as a PDF." Expect a DIN 5008 letter on A4.
 23. "Set my job feed salary floor to 160,000." Expect `update_feed_settings`. "Save the first job in my feed." Expect `give_job_feedback`. Dismissing a job, or rating it not relevant, removes it for good, so skip those two.
-24. "Run my job feed for today." Expect `run_job_feed`. Allowed once a day, and it needs the consent that's already on the account. It queues a live search of public listings and returns a run id. The jobs show up in the feed within a couple of minutes.
+24. "Run my job feed for today." Expect `run_job_feed`. Allowed once a day on most plans (three times on Max), and it needs the consent that's already on the account. It queues a live search of public listings and returns a run id. The jobs show up in the feed within a couple of minutes.
 25. "Turn off the follow-up reminder emails." Expect `update_notification_settings`. Turn it back on.
 26. "Update my phone number to +1 512 555 0143." Expect `update_profile`.
 27. "Set my profile photo from this base64 PNG: `iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR42mPQiFpAEmIY1TCqYfhqAAC1BSIQbI06FgAAAABJRU5ErkJggg==`" Expect `set_profile_photo` with `image/png`. "Remove it." Expect `remove_profile_photo`. The tool takes base64 text, not a chat attachment. If your client can't pass base64, skip this step.

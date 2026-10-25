@@ -6,7 +6,7 @@ Two PRs:
 - **PR A, `feature/feed-data-mcp-parity`:** items 1 to 10. Sensitive review row (D1 schema, optimistic concurrency, the run state machine).
 - **PR B, `feature/composer-sidebar`:** items 11 and 12. Feature review row.
 
-Migration `0016_feed_revision_runs_descriptions.sql` is additive only: new columns with defaults, and the one-run-a-day unique index rebuilt with the new run slot. No row is rewritten or dropped.
+Migrations 0016 (description source), 0017 (settings revision) and 0018 (run slot) are additive: new columns with defaults, and the one-run-a-day unique index rebuilt to include the slot. No row is rewritten or dropped.
 
 ## Part 1: feed data
 
@@ -54,7 +54,7 @@ Migration `0016_feed_revision_runs_descriptions.sql` is additive only: new colum
 - **Fix:** `update_feed_settings` returns `droppedRoles` and a warning. Searches per run and runs per day come from one per-plan table (`JOB_FEED_PLAN_LIMITS`). Max goes from 4 searches and 1 run to 8 searches and 3 runs a day; free and Plus stay as they are. A second run on the same day takes the next slice of the search list (it wraps), and `run_job_feed` takes an optional custom query set an agent writes, run through the same search, filter and rank. `job_feed_runs.run_slot` with a unique index on user, local day and slot.
 
 ### 10. Smaller MCP issues
-- **Fix:** `give_job_feedback` says why a job can't change (kit already made, dismissed, rated not relevant, no longer in the 7-day feed). `get_job_feed` with `full` fills a page up to about 40,000 characters of descriptions, never cutting one, and returns `nextOffset`.
+- **Fix:** `give_job_feedback` says why a job can't change (kit already made, dismissed, rated not relevant, no longer in the 7-day feed). `get_job_feed` with `full` fills a page up to about 40,000 characters of descriptions, never cutting one, and returns `nextOffset` (this landed with item 1, the same code).
 
 ## Part 3: UI (PR B)
 

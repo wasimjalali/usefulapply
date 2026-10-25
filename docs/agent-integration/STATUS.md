@@ -12,6 +12,10 @@ Last updated 2026-10-25, session 5. The plan is `PLAN.md` (v3) in this folder; t
 
 **Kill switch:** set `MCP_ENABLED` to `"false"` in `wrangler.jsonc` and deploy. /mcp, the OAuth server and /integrations return 404. The footer "AI integrations" link stays (it can't read the var), so it would 404 too: drop it from `Footer.tsx` in the same change.
 
+## Session 6 (2026-10-25): feed data and settings parity
+
+- PR `feature/feed-data-mcp-parity`: two new tools, `update_feed_searches` and `regenerate_career_profile` (45 tools: 13 read, 26 free writes, 6 spend; 20 destructive). `update_feed_settings` takes every feed setting and a required `revision`; `run_job_feed` takes optional `queries`. Production `tools/list` returns 45 once that PR is deployed; re-run the catalog drift check and the reviewer seed before the next review window.
+
 ## Session 5 progress (2026-10-25): submission prep
 
 - **Catalog drift check.** Production `tools/list` (over the plugin's live OAuth connection) returned the same 43 names as `TOOL_SCOPES`: 13 read, 24 free writes, 6 spend. Hints rechecked in code: 19 destructive, `run_job_feed` the only open-world tool. `update_notification_settings` takes only `followUpDue` and `interviewTomorrow` (#194 removed `marketing` and `creditsLow`); none of the pack named the removed fields. #197 (`employmentTypes` on `update_feed_settings`, a job URL on create and update must be http or https) was still open and not deployed; nothing in the pack names those fields, so nothing changes when it ships.

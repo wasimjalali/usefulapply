@@ -6,7 +6,7 @@ Status as of 2026-10-25, checked against production (Worker version `7121506b`, 
 
 | Requirement | Status | Owner |
 |---|---|---|
-| Full tool catalog live: 43 tools (13 read, 24 free writes, 6 spend) | done. Production `tools/list` on 2026-10-25 returned the same 43 names as `TOOL_SCOPES` | done |
+| Full tool catalog live: 45 tools (13 read, 26 free writes, 6 spend; 43 before 2026-10-25's `update_feed_searches` and `regenerate_career_profile`) | done. Production `tools/list` on 2026-10-25 returned the same 43 names as `TOOL_SCOPES` | done |
 | `/integrations`, privacy and terms pages live | done, all 200 on 2026-10-25 | done |
 | `MCP_ENABLED=true` deployed, `/mcp` reachable over public HTTPS | done, live since 2026-10-21 | done |
 | Unauthenticated `/mcp` request returns 401 with `WWW-Authenticate` | done, checked 2026-10-25 (`resource_metadata` and `scope` in the header) | done |
