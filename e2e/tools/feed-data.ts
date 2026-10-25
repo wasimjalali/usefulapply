@@ -646,6 +646,24 @@ async function main(): Promise<void> {
     return { yesterdayKey, morningSlot: morning.runSlot, nextStarted: after.started };
   });
 
+  await scenario('r4. an account set to four runs a day gets a fourth on the same day, and no fifth', async () => {
+    const overrideUser = await seedMaxUser('override');
+    await run('UPDATE profiles SET job_feed_runs_per_day = 4 WHERE id = ?', overrideUser);
+    const slots: number[] = [];
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const queued = await queueFeedRun(overrideUser, { customQueries: null });
+      assert.ok(queued.started && queued.runId, `run ${attempt + 1} starts (got ${JSON.stringify(queued)})`);
+      assert.equal(queued.runsPerDay, 4);
+      await feedServer.runJobFeedFoundationWorkflow({ userId: overrideUser, runId: queued.runId, orchestrator: 'queue' });
+      slots.push(queued.runSlot ?? -1);
+    }
+    assert.deepEqual(slots, [0, 1, 2, 3]);
+    const fifth = await queueFeedRun(overrideUser, { customQueries: null });
+    assert.equal(fifth.started, false, 'no fifth run');
+    assert.equal(fifth.runsLeftToday, 0);
+    return { slots };
+  });
+
   await scenario('e5. an inbox the settings and the tracker empty stays empty: no fallback to the unfiltered run', async () => {
     // Everything still visible for the second user goes into the tracker.
     for (const [title, company] of [['AI Engineer', 'Quiet KG'], ['AI Specialist', 'Quiet KG'], ['AI Engineer', 'Hybrid AG']]) {

@@ -176,7 +176,8 @@ async function readRunGate(userId: string): Promise<RunGate> {
     timeZone,
     now,
   });
-  const { runsPerDay } = getJobFeedTierLimits(profile.subscription_tier);
+  // An account's own override (set by hand) wins over its plan's runs a day.
+  const runsPerDay = profile.job_feed_runs_per_day ?? getJobFeedTierLimits(profile.subscription_tier).runsPerDay;
   if (runsPerDay <= 1) {
     return { timeZone, now, latestManualRun, cooldown, runsPerDay, runsLeftToday: cooldown.blocked ? 0 : 1 };
   }
