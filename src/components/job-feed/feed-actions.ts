@@ -111,12 +111,8 @@ function mergeQuietSettings(
   if (store.isSavingSettings) return { ...incoming, settings: local };
   const remote = incoming.settings;
   if (!remote) return { ...incoming, settings: local };
-  const localTs = Date.parse(local.updated_at ?? '');
-  const remoteTs = Date.parse(remote.updated_at ?? '');
-  if (Number.isFinite(localTs) && (!Number.isFinite(remoteTs) || localTs > remoteTs)) {
-    return { ...incoming, settings: local };
-  }
-  return incoming;
+  // Every write moves the revision on, so the higher one is the newer settings.
+  return local.revision > remote.revision ? { ...incoming, settings: local } : incoming;
 }
 
 function isStale(generation: number): boolean {
@@ -369,6 +365,8 @@ export async function saveFeedSettings(
     if (isStale(generation)) return { ok: false, error: 'Feed was reset.' };
     if (response.status === 409 && payload.code === 'stale_settings') {
       // Someone (an agent, another tab) saved newer settings. Load them so the form shows what is saved.
+      // This save is over, so the reload must not keep the settings on screen as an in-flight save would.
+      useFeedStore.getState().setIsSavingSettings(false);
       await loadFeedOverview({ quiet: true });
       return {
         ok: false,
