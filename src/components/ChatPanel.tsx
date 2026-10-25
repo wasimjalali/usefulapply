@@ -2612,6 +2612,7 @@ export function ChatPanel({
             compact={messages.length > 0}
             surface={isDesktopDocked || spine ? 'embedded' : 'floating'}
             focusSignal={jdFocusRequest}
+            formId="tour-mode-selector"
           />
         </div>
         )}
