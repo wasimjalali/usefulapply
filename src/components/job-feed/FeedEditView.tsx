@@ -552,7 +552,7 @@ export function FeedEditView({
                   <div className="grid grid-cols-2 gap-5">
                     <Row
                       label="DISCIPLINE"
-                      value={`${capitalise(profile.function)} · ${capitalise(profile.seniority.level)} · ${profile.yearsTotal} years`}
+                      value={`${capitalise(profile.function)} · ${capitalise(profile.seniority.level)} · ${yearsLine(profile)}`}
                     />
                     <div>
                       <p className="text-[11px] font-semibold tracking-[0.08em] text-ink-muted">INDUSTRIES</p>
@@ -624,6 +624,16 @@ export function FeedEditView({
       </div>
     </div>
   );
+}
+
+/**
+ * The years beside the discipline are the years in it ("2 years in engineering"), with the whole working
+ * life after them when it is longer: a total next to "Engineering" read as that many years of engineering.
+ */
+function yearsLine(profile: Pick<CareerProfile, 'function' | 'yearsInFunction' | 'yearsTotal'>): string {
+  const years = (count: number) => `${count} ${count === 1 ? 'year' : 'years'}`;
+  const inFunction = `${years(profile.yearsInFunction)} in ${profile.function.toLowerCase()}`;
+  return profile.yearsTotal > profile.yearsInFunction ? `${inFunction} (${profile.yearsTotal} in total)` : inFunction;
 }
 
 function capitalise(value: string): string {

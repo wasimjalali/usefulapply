@@ -572,7 +572,9 @@ function validateCareerProfilePayload(value: unknown): CareerProfile {
 
   const profile: CareerProfile = {
     version: CAREER_PROFILE_SCHEMA_VERSION,
-    generatedAt: typeof candidate.generatedAt === 'string' ? candidate.generatedAt : new Date().toISOString(),
+    // The server's clock, never the model's: the model does not know the time and wrote dates like
+    // 2026-10-01T00:00:00Z, which the card then showed as when the CV was read.
+    generatedAt: new Date().toISOString(),
     function: ensureNonEmptyString(candidate.function, 'function'),
     inferredTitles,
     seniority,
