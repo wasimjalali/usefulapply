@@ -813,7 +813,7 @@ const applyToFeedJobTool = defineTool({
         idempotencyKey,
         spendLimit: await mcpSpendLimit(userId),
       });
-      const job = { title: wrapShort(outcome.job.title), company: wrapShort(outcome.job.company) };
+      const job = { title: wrapLine(outcome.job.title), company: wrapLine(outcome.job.company) };
       const gaps = profileGaps(await getProfile(userId));
 
       if (outcome.kind === 'kit_exists') {

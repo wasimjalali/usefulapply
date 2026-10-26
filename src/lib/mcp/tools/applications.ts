@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { flattenUntrusted } from '@/lib/agents/chat-tools/untrusted';
+import { sanitizeUntrustedText } from '@/lib/agents/chat-tools/untrusted';
 import { defineTool, ok, type AnyToolDefinition } from '@/lib/mcp/tools/framework';
 import { ToolError } from '@/lib/mcp/tools/errors';
 import {
@@ -9,6 +9,7 @@ import {
   refuseDataMarks,
   requireApplication,
   revisionField,
+  wrapLine,
   wrapLong,
   wrapShort,
 } from '@/lib/mcp/tools/shared';
@@ -88,8 +89,8 @@ const listApplications = defineTool({
     return ok({
       applications: rows.map((row) => ({
         applicationId: row.id,
-        title: wrapShort(row.job_title),
-        company: wrapShort(row.company),
+        title: wrapLine(row.job_title),
+        company: wrapLine(row.company),
         matchScore: row.match_score,
         status: row.status,
         interviewAt: row.interview_at,
@@ -193,8 +194,8 @@ const getApplication = defineTool({
       applicationId: row.id,
       revision: row.revision,
       job: {
-        title: wrapShort(row.job_title),
-        company: wrapShort(row.company),
+        title: wrapLine(row.job_title),
+        company: wrapLine(row.company),
         url: wrapOrNull(row.job_url, (v) => wrapLong(v, 2_000)),
         companyAddress: wrapOrNull(row.company_address, (v) => wrapLong(v, 1_000)),
         contactPerson: wrapOrNull(row.company_contact_person, wrapShort),
@@ -360,8 +361,8 @@ const explainFit = defineTool({
     ].filter(Boolean).join(' ');
     return ok({
       applicationId: row.id,
-      title: wrapShort(row.job_title),
-      company: wrapShort(row.company),
+      title: wrapLine(row.job_title),
+      company: wrapLine(row.company),
       matchScore: score,
       fitLevel: level,
       summary,
@@ -497,7 +498,7 @@ const deleteApplicationTool = defineTool({
   async confirm({ applicationId }, { userId }) {
     const row = await sessionsRepo.getSession(userId, applicationId);
     if (!row) return null;
-    return `Delete the application "${flattenUntrusted(row.job_title)}" at ${flattenUntrusted(row.company)}? This removes its documents and cannot be undone.`;
+    return `Delete the application "${sanitizeUntrustedText(row.job_title, Number.POSITIVE_INFINITY) || 'unknown'}" at ${sanitizeUntrustedText(row.company, Number.POSITIVE_INFINITY) || 'unknown'}? This removes its documents and cannot be undone.`;
   },
   async run({ applicationId, revision }, { userId }) {
     // Deleting the row detaches any operation from it (the link is set null), and the runner would then

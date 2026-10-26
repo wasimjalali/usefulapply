@@ -19,6 +19,7 @@ import {
   requireApplication,
   waitForOperation,
   waitSecondsField,
+  wrapLine,
   wrapLong,
   wrapShort,
 } from '@/lib/mcp/tools/shared';
@@ -267,7 +268,7 @@ const analyzeJobFit = defineTool({
         matchingSkills: stored.fit.matchingSkills.map(wrapShort),
         missingSkills: stored.fit.missingSkills.map(wrapShort),
       },
-      job: stored.job ? { title: wrapShort(stored.job.title), company: wrapShort(stored.job.companyName) } : null,
+      job: stored.job ? { title: wrapLine(stored.job.title), company: wrapLine(stored.job.companyName) } : null,
       detectedLanguage: stored.detectedLanguage,
       revision: stored.revision,
       creditsUsed: replayed ? 0 : CREDIT_COSTS.FIT_ANALYSIS,

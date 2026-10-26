@@ -54,7 +54,7 @@ test.describe.serial('scopes: a token can only do what its consent said', () => 
     expect(spendOnly.tokens.scope.split(' ').filter((scope) => scope !== 'offline_access')).toEqual(['spend']);
   });
 
-  test('a read-only token is refused on all 30 write and spend tools, with the scope to ask for, and changes nothing', async () => {
+  test('a read-only token is refused on all 32 write and spend tools, with the scope to ask for, and changes nothing', async () => {
     const before = accountSnapshot(user.id);
     const refused: string[] = [];
     for (const [name, scope] of Object.entries(TOOL_SCOPES)) {
@@ -67,7 +67,7 @@ test.describe.serial('scopes: a token can only do what its consent said', () => 
       expect(challenge, `${name} names the scope it needs`).toContain(scope);
       refused.push(name);
     }
-    expect(refused).toHaveLength(30);
+    expect(refused).toHaveLength(32);
     expect(accountSnapshot(user.id), 'no tool ran').toEqual(before);
 
     // The positive control: the same token reads.
