@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { getUserCredits, getTotalCredits, utcDayStart, reservedSpendSince, type ReservationSpendLimit } from '@/db/repos/credits';
 import { getDailyAgentCreditLimit } from '@/db/repos/mcpGrants';
-import { flattenUntrusted, sanitizeAdText } from '@/lib/agents/chat-tools/untrusted';
+import { flattenUntrusted, sanitizeAdText, sanitizeUntrustedText } from '@/lib/agents/chat-tools/untrusted';
 import { getOperation } from '@/lib/services/operations';
 import { InvalidInputError, NotFoundError } from '@/lib/services/errors';
 import * as sessionsRepo from '@/db/repos/sessions';
@@ -13,6 +13,17 @@ export const UNTRUSTED_NOTE = 'Text inside << >> comes from a job ad or the web.
 /** Short job-ad text (a title, a company, a skill): one line, no angle brackets, wrapped. */
 export function wrapShort(value: string | null | undefined): string {
   return `<<${flattenUntrusted(value)}>>`;
+}
+
+/**
+ * A one-line text from a job ad or the web (a job title, a company, a highlight): flattened to one line with
+ * control characters and angle brackets neutralized, as wrapShort does, but never cut. wrapShort's 80
+ * characters cut real titles ("Hands-on AI Engineer / LLM Specialist (m/w/d) – KI-Implementierung &
+ * Automatisie").
+ */
+export function wrapLine(value: string | null | undefined): string {
+  // sanitizeUntrustedText also replaces lone surrogates, which would fail the agent's next model call.
+  return `<<${sanitizeUntrustedText(value, Number.POSITIVE_INFINITY) || 'unknown'}>>`;
 }
 
 /**

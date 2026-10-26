@@ -27,6 +27,7 @@ import {
   waitForOperation,
   waitSecondsField,
   wrapLong,
+  wrapLine,
   wrapShort,
   wrapUrl,
 } from '@/lib/mcp/tools/shared';
@@ -133,17 +134,18 @@ function fitPage(items: JobFeedFeedItem[], detail: 'concise' | 'full'): z.infer<
 function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full'): z.infer<typeof feedItemSchema> {
   const view: z.infer<typeof feedItemSchema> = {
     jobId: item.id,
-    title: wrapShort(item.title),
-    company: wrapShort(item.company),
-    location: item.location ? wrapShort(item.location) : null,
+    // Every text whole, as the links are: wrapLine flattens and neutralizes like wrapShort without its 80-character cut.
+    title: wrapLine(item.title),
+    company: wrapLine(item.company),
+    location: item.location ? wrapLine(item.location) : null,
     workMode: item.workMode ?? null,
     employmentType: item.employmentType ?? null,
-    salaryText: item.salaryText ? wrapShort(item.salaryText) : null,
-    postedAtText: item.postedAtText ? wrapShort(item.postedAtText) : null,
-    via: item.via ? wrapShort(item.via) : null,
+    salaryText: item.salaryText ? wrapLine(item.salaryText) : null,
+    postedAtText: item.postedAtText ? wrapLine(item.postedAtText) : null,
+    via: item.via ? wrapLine(item.via) : null,
     applyUrl: wrapUrl(item.applyUrl),
     fitLabel: item.fitLabel,
-    matchReason: wrapOrNull(item.matchReason, 1000),
+    matchReason: wrapOrNull(item.matchReason, Number.POSITIVE_INFINITY),
     saved: Boolean(item.feedback.savedAt),
     savedAt: item.feedback.savedAt,
     matchRating: item.feedback.matchRating,
@@ -154,13 +156,13 @@ function toFeedItemView(item: JobFeedFeedItem, detail: 'concise' | 'full'): z.in
     view.description = wrapOrNull(item.description, Number.POSITIVE_INFINITY);
     view.descriptionComplete = item.descriptionComplete;
     view.highlights = item.highlights.map((highlight) => ({
-      title: wrapShort(highlight.title),
-      items: highlight.items.map((entry) => wrapShort(entry)),
+      title: wrapLine(highlight.title),
+      items: highlight.items.map((entry) => wrapLine(entry)),
     }));
     view.sourceUrl = wrapUrl(item.sourceUrl);
     view.applyOptions = item.applyOptions.flatMap((option) => {
       const link = wrapUrl(option.link);
-      return link ? [{ title: wrapShort(option.title), link }] : [];
+      return link ? [{ title: wrapLine(option.title), link }] : [];
     });
   }
   return view;

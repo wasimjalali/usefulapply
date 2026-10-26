@@ -176,7 +176,8 @@ async function feedSnapshot(userId: string, limit: number, timeZone: string) {
       work_mode: item.workMode,
       salary: item.salaryText ? wrapped(item.salaryText) : null,
       fit: item.fitLabel,
-      why: item.matchReason ? `<<${sanitizeUntrustedText(item.matchReason, 200)}>>` : null,
+      // Whole, as get_job_feed returns it: the ranker's reason is no longer cut at 160, so a 200 cut here would split words.
+      why: item.matchReason ? `<<${sanitizeUntrustedText(item.matchReason, Number.POSITIVE_INFINITY)}>>` : null,
       saved: Boolean(item.feedback.savedAt),
       dismissed: Boolean(item.feedback.dismissedAt),
     })),
