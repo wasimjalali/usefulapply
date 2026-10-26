@@ -288,8 +288,11 @@ async function main(): Promise<void> {
   const platform = await openPlatform(freshStateDir());
   const feedServer = await import('../../src/lib/job-feed/server');
   const { feedTools } = await import('../../src/lib/mcp/tools/feed');
+  const { applicationTools } = await import('../../src/lib/mcp/tools/applications');
+  const { accountTools } = await import('../../src/lib/mcp/tools/account');
+  const tools = [...feedTools, ...applicationTools, ...accountTools];
   const tool = (name: string) => {
-    const found = feedTools.find((definition) => definition.name === name);
+    const found = tools.find((definition) => definition.name === name);
     if (!found) throw new Error(`no tool ${name}`);
     return found;
   };
@@ -499,6 +502,33 @@ async function main(): Promise<void> {
   const filterRun = await feedServer.runJobFeedFoundationWorkflow({ userId: filterUser, orchestrator: 'direct' });
   assert.equal(filterRun.run.status, 'completed', `the second run completed: ${filterRun.run.error_message ?? ''}`);
   const filterFeed = async () => (await readWholeFeed(filterUser)).items.map((item) => unwrap(item.company));
+
+  await scenario('d6. a title and a company past 80 characters come back whole from list_applications, get_application, explain_fit, morning_briefing and apply_to_feed_job', async () => {
+    const company = 'Thermondo Energie- und Wärmepumpen-Installationsgesellschaft mbH & Co. KG (Berlin-Kreuzberg)';
+    assert.ok(company.length > 80);
+    const applicationId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await run(
+      "INSERT INTO application_sessions (id, user_id, job_title, company, job_description, matching_skills, missing_skills, suggestions, cv_edits, status, match_score, follow_up_due_at, created_at, updated_at) VALUES (?, ?, ?, ?, 'An ad.', '[]', '[]', '[]', '[]', 'applied', 72, ?, ?, ?)",
+      applicationId, userId, LONG_TITLE, company, new Date(Date.now() - 60_000).toISOString(), now, now,
+    );
+    type Named = { title: string; company: string };
+    const listed = await call<{ applications: Array<Named & { applicationId: string }> }>('list_applications', { limit: 50 }, userId);
+    const fromList = listed.applications.find((application) => application.applicationId === applicationId);
+    const fromGet = (await call<{ job: Named }>('get_application', { applicationId }, userId)).job;
+    const fromFit = await call<Named>('explain_fit', { applicationId }, userId);
+    const briefing = await call<{ followUpsDue: { items: Array<Named & { applicationId: string }> } }>('morning_briefing', {}, userId);
+    const fromBriefing = briefing.followUpsDue.items.find((item) => item.applicationId === applicationId);
+    for (const [where, named] of Object.entries({ list_applications: fromList, get_application: fromGet, explain_fit: fromFit, morning_briefing: fromBriefing })) {
+      assert.ok(named, `${where} shows the application`);
+      assert.equal(unwrap(named.title), LONG_TITLE, `${where} title`);
+      assert.equal(unwrap(named.company), company, `${where} company`);
+    }
+    // The feed job with the same long title, through apply_to_feed_job (a fit check on the scripted model).
+    const applied = await call<{ job: Named }>('apply_to_feed_job', { jobId: byCompany(feed.items, 'Thermondo').jobId, mode: 'fit', idempotencyKey: crypto.randomUUID() }, userId);
+    assert.equal(unwrap(applied.job.title), LONG_TITLE, 'apply_to_feed_job title');
+    return { titleLength: LONG_TITLE.length, companyLength: company.length };
+  });
 
   await scenario('e1. onsite left out: an ad that says 100% vor Ort never reaches the feed; hybrid, remote and unstated ones do', async () => {
     const companies = await filterFeed();

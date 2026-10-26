@@ -8,7 +8,7 @@ import { listBriefingApplications } from '@/db/repos/sessions';
 import { getBlockedCanonicalJobIdsAdmin } from '@/lib/job-feed/server';
 import { defineTool, ok, type AnyToolDefinition } from '@/lib/mcp/tools/framework';
 import { AVAILABILITY_CHOICES, isAvailabilityChoice } from '@/lib/profile/logistics';
-import { UNTRUSTED_NOTE, creditsSnapshot, dailySpend, wrapLong, wrapShort } from '@/lib/mcp/tools/shared';
+import { UNTRUSTED_NOTE, creditsSnapshot, dailySpend, wrapLine, wrapLong } from '@/lib/mcp/tools/shared';
 
 const READ_HINTS = { readOnly: true, destructive: false, idempotent: true, openWorld: false } as const;
 
@@ -176,8 +176,8 @@ const morningBriefing = defineTool({
 
     const item = (row: (typeof rows)[number], dueAt: string | null) => ({
       applicationId: row.id,
-      title: wrapShort(row.job_title),
-      company: wrapShort(row.company),
+      title: wrapLine(row.job_title),
+      company: wrapLine(row.company),
       status: row.status,
       dueAt,
     });
@@ -216,9 +216,9 @@ const morningBriefing = defineTool({
           if (!job) return [];
           return [{
             jobId: r.canonical_job_id,
-            title: wrapShort(job.title),
-            company: wrapShort(job.company),
-            reason: r.reason ? wrapLong(r.reason, 300) : null,
+            title: wrapLine(job.title),
+            company: wrapLine(job.company),
+            reason: r.reason ? wrapLong(r.reason, Number.POSITIVE_INFINITY) : null,
           }];
         }),
       },

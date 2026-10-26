@@ -9,6 +9,7 @@ import {
   refuseDataMarks,
   requireApplication,
   revisionField,
+  wrapLine,
   wrapLong,
   wrapShort,
 } from '@/lib/mcp/tools/shared';
@@ -88,8 +89,8 @@ const listApplications = defineTool({
     return ok({
       applications: rows.map((row) => ({
         applicationId: row.id,
-        title: wrapShort(row.job_title),
-        company: wrapShort(row.company),
+        title: wrapLine(row.job_title),
+        company: wrapLine(row.company),
         matchScore: row.match_score,
         status: row.status,
         interviewAt: row.interview_at,
@@ -193,8 +194,8 @@ const getApplication = defineTool({
       applicationId: row.id,
       revision: row.revision,
       job: {
-        title: wrapShort(row.job_title),
-        company: wrapShort(row.company),
+        title: wrapLine(row.job_title),
+        company: wrapLine(row.company),
         url: wrapOrNull(row.job_url, (v) => wrapLong(v, 2_000)),
         companyAddress: wrapOrNull(row.company_address, (v) => wrapLong(v, 1_000)),
         contactPerson: wrapOrNull(row.company_contact_person, wrapShort),
@@ -360,8 +361,8 @@ const explainFit = defineTool({
     ].filter(Boolean).join(' ');
     return ok({
       applicationId: row.id,
-      title: wrapShort(row.job_title),
-      company: wrapShort(row.company),
+      title: wrapLine(row.job_title),
+      company: wrapLine(row.company),
       matchScore: score,
       fitLevel: level,
       summary,

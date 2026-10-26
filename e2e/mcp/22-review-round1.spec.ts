@@ -161,15 +161,28 @@ test.describe.serial('get_job_feed keeps one response small', () => {
     await context?.close();
   });
 
-  test('detail full shares one description budget across the page, under about 100 KB', async () => {
-    const page = await agent.ok<{ items: Array<{ description?: string | null }> }>('get_job_feed', { view: 'inbox', detail: 'full', limit: 50 });
-    expect(page.items.length).toBeGreaterThanOrEqual(5);
-    const cap = Math.floor(40_000 / page.items.length);
-    for (const item of page.items) {
-      expect(item.description, 'still wrapped as data').toMatch(/^<<[\s\S]*>>$/);
-      expect((item.description as string).length, 'each description is cut to its share').toBeLessThanOrEqual(cap + 4);
+  test('detail full keeps every description whole and splits the inbox into pages under about 100 KB', async () => {
+    // Since 2026-10-25 a description is never cut: a page holds as many whole ads as fit its 40,000-character
+    // budget and says where the next page starts.
+    type Page = { items: Array<{ jobId: string; description?: string | null }>; hasMore: boolean; nextOffset: number | null };
+    const seen: string[] = [];
+    let offset: number | null = 0;
+    let pages = 0;
+    while (offset !== null) {
+      const page: Page = await agent.ok<Page>('get_job_feed', { view: 'inbox', detail: 'full', limit: 50, offset });
+      pages += 1;
+      expect(page.items.length, 'every page holds at least one job').toBeGreaterThanOrEqual(1);
+      for (const item of page.items) {
+        expect(item.description, 'still wrapped as data').toMatch(/^<<[\s\S]*>>$/);
+        expect((item.description as string).length, 'the whole 15,000-character ad').toBeGreaterThanOrEqual(15_000);
+        seen.push(item.jobId);
+      }
+      expect(JSON.stringify(page).length).toBeLessThan(100_000);
+      expect(page.nextOffset).toBe(page.hasMore ? offset + page.items.length : null);
+      offset = page.nextOffset;
     }
-    expect(JSON.stringify(page).length).toBeLessThan(100_000);
+    expect(new Set(seen).size, 'all twelve jobs, each once').toBe(12);
+    expect(pages, 'split by size, not returned in one page').toBeGreaterThan(1);
 
     // A single job keeps up to the per-description maximum.
     const one = await agent.ok<{ items: Array<{ description?: string | null }> }>('get_job_feed', { view: 'inbox', detail: 'full', limit: 1 });
