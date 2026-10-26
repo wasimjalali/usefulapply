@@ -632,7 +632,7 @@ export function FeedEditView({
  */
 function yearsLine(profile: Pick<CareerProfile, 'function' | 'yearsInFunction' | 'yearsTotal'>): string {
   const years = (count: number) => `${count} ${count === 1 ? 'year' : 'years'}`;
-  const inFunction = `${years(profile.yearsInFunction)} in ${profile.function.toLowerCase()}`;
+  const inFunction = `${years(profile.yearsInFunction)} in ${profile.function}`;
   return profile.yearsTotal > profile.yearsInFunction ? `${inFunction} (${profile.yearsTotal} in total)` : inFunction;
 }
 

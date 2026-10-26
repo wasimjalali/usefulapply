@@ -176,7 +176,8 @@ export async function readSearchStrategy(userId: string): Promise<SearchStrategy
   const profileNewerThanStrategy = Boolean(
     row.source_profile_generated_at
     && profile.generatedAt
-    && profile.generatedAt > row.source_profile_generated_at,
+    // As times: older profiles hold the model's '...T00:00:00Z', newer ones '...T00:00:00.000Z'.
+    && Date.parse(profile.generatedAt) > Date.parse(row.source_profile_generated_at),
   );
 
   return {

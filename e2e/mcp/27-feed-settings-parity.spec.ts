@@ -304,7 +304,8 @@ test.describe.serial('feed settings: the career profile, dropped roles, feedback
     await expect(page.getByText('Finance · Mid · 5 years in finance')).toBeVisible();
     const refreshed = page.getByText(/^refreshed /);
     await expect(refreshed).toBeVisible();
-    expect(await refreshed.textContent()).not.toMatch(/\b1 Oct\b/);
+    // Today's day of the month, never the fake's 1 Oct (unless today is the 1st).
+    expect(await refreshed.textContent()).toMatch(new RegExp(`\\b${new Date().getDate()}\\b`));
     await page.getByText('What I read from your CV').scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath('5-cv-card-after-reread.png') });
     await page.close();
