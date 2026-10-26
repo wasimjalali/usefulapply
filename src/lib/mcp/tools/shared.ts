@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { getUserCredits, getTotalCredits, utcDayStart, reservedSpendSince, type ReservationSpendLimit } from '@/db/repos/credits';
 import { getDailyAgentCreditLimit } from '@/db/repos/mcpGrants';
-import { flattenUntrusted, sanitizeAdText } from '@/lib/agents/chat-tools/untrusted';
+import { flattenUntrusted, sanitizeAdText, sanitizeUntrustedText } from '@/lib/agents/chat-tools/untrusted';
 import { getOperation } from '@/lib/services/operations';
 import { InvalidInputError, NotFoundError } from '@/lib/services/errors';
 import * as sessionsRepo from '@/db/repos/sessions';
@@ -22,8 +22,8 @@ export function wrapShort(value: string | null | undefined): string {
  * Automatisie").
  */
 export function wrapLine(value: string | null | undefined): string {
-  const clean = (value ?? '').replace(/[\u0000-\u001F\u007F<>]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
-  return `<<${clean || 'unknown'}>>`;
+  // sanitizeUntrustedText also replaces lone surrogates, which would fail the agent's next model call.
+  return `<<${sanitizeUntrustedText(value, Number.POSITIVE_INFINITY) || 'unknown'}>>`;
 }
 
 /**
