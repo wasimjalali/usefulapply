@@ -801,7 +801,8 @@ export function searchStrategyAnswer(body: MessagesBody): HaikuAnswer {
 export function careerProfileAnswer(): HaikuAnswer {
   return reply(JSON.stringify({
     version: 1,
-    generatedAt: new Date().toISOString(),
+    // A date of the model's own, as Haiku wrote on 2026-10-26: the server must not keep it.
+    generatedAt: '2026-10-01T00:00:00Z',
     function: 'finance',
     inferredTitles: [{ canonical: 'Financial Analyst', confidence: 'high', rationale: 'Owns monthly forecast and variance reporting at Calder Industrial Components.' }],
     seniority: { level: 'mid', confidence: 'medium', rationale: 'Five years of forecasting and month-end reporting.' },

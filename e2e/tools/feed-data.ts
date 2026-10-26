@@ -752,8 +752,11 @@ async function main(): Promise<void> {
     const { generateCareerProfileForUser } = await import('../../src/lib/services/feed/career-profile');
     const userId = await seedMaxUser('reread');
     const read = (force: boolean) => generateCareerProfileForUser({ userId, force, clientRequestId: null, route: 'e2e' });
+    const before = Date.now();
     const first = await read(true);
     assert.equal(first.regenerated, true, 'no profile yet: read');
+    // When the CV was read is the server's clock, not the date the model wrote (the fake writes 1 Oct).
+    assert.ok(first.generatedAt && Date.parse(first.generatedAt) >= before - 1000, `generatedAt ${first.generatedAt} is now`);
     assert.equal((await read(true)).regenerated, false, 'forced again at once: the stored profile');
     assert.equal((await read(false)).regenerated, false, 'not forced, CV unchanged: the stored profile');
     // The CV changes a minute later: read again at once, forced or not.

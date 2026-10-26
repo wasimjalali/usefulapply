@@ -268,7 +268,7 @@ test.describe.serial('feed settings: the career profile, dropped roles, feedback
     await context?.close();
   });
 
-  test('regenerate_career_profile reads the CV again and leaves the settings\' seniority alone; the editor button does the same', async () => {
+  test('regenerate_career_profile reads the CV again and leaves the settings\' seniority alone; the editor button does the same', async ({}, testInfo) => {
     const before = await agent.ok<SettingsRead>('get_feed_settings');
     // The stored profile is the seeded one, "senior". The CV on file reads as mid on the scripted model.
     // Reading the CV again is for Plus and Max.
@@ -299,6 +299,15 @@ test.describe.serial('feed settings: the career profile, dropped roles, feedback
     await expect(reread).toBeEnabled();
     // (Next.js keeps an empty route announcer with the alert role on every page, so look for the button's own error.)
     await expect(page.getByText(/could not read your CV|need your CV first/)).toHaveCount(0);
+    // The card says when the CV was read by the server's clock (the fake model writes 1 Oct), and the years
+    // beside the discipline are the years in it.
+    await expect(page.getByText('Finance · Mid · 5 years in finance')).toBeVisible();
+    const refreshed = page.getByText(/^refreshed /);
+    await expect(refreshed).toBeVisible();
+    // Today's day of the month, never the fake's 1 Oct (unless today is the 1st).
+    expect(await refreshed.textContent()).toMatch(new RegExp(`\\b${new Date().getDate()}\\b`));
+    await page.getByText('What I read from your CV').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath('5-cv-card-after-reread.png') });
     await page.close();
   });
 
