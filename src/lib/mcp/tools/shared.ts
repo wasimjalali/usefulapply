@@ -16,6 +16,17 @@ export function wrapShort(value: string | null | undefined): string {
 }
 
 /**
+ * A one-line text from a job ad or the web (a job title, a company, a highlight): flattened to one line with
+ * control characters and angle brackets neutralized, as wrapShort does, but never cut. wrapShort's 80
+ * characters cut real titles ("Hands-on AI Engineer / LLM Specialist (m/w/d) – KI-Implementierung &
+ * Automatisie").
+ */
+export function wrapLine(value: string | null | undefined): string {
+  const clean = (value ?? '').replace(/[\u0000-\u001F\u007F<>]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  return `<<${clean || 'unknown'}>>`;
+}
+
+/**
  * A link from a job ad or the web: never cut, since a shortened URL is a dead one. Serializing it through
  * URL percent-encodes angle brackets, quotes and spaces, so it cannot close the << >> wrapper. Null for a
  * value that is not an absolute http(s) URL.

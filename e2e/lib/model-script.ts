@@ -754,6 +754,12 @@ function scriptedLevels(title: string): string[] {
 }
 
 /**
+ * The ranker's reason for every job it keeps: over the 160 characters the prompt asks for, as Haiku often
+ * writes, so a spec sees whether the server keeps it whole.
+ */
+export const SCRIPTED_RANKING_REASON = 'Scripted ranker: reads the description and ranks it. The role asks for agents, evaluations and retrieval work the CV shows, with one gap in Python that the candidate can close on the job.';
+
+/**
  * Ranking: every candidate gets a decision, best last-deterministic first, so the persisted order differs from
  * the deterministic one and a spec can tell the model's ranking from the fallback. The first three are strong,
  * the rest good up to the cap the instruction states, then skip.
@@ -768,7 +774,7 @@ export function rankingAnswer(body: MessagesBody): HaikuAnswer {
     jobId: candidate.jobId,
     decision: index >= cap ? 'skip' : index < 3 ? 'strong' : 'good',
     rank: index >= cap ? null : index + 1,
-    reason: index >= cap ? null : 'Scripted ranker: reads the description and ranks it.',
+    reason: index >= cap ? null : SCRIPTED_RANKING_REASON,
     companyDisplay: null,
     workMode: scriptedWorkMode(candidate.descriptionExcerpt ?? ''),
     seniorityLevels: scriptedLevels(candidate.title ?? ''),

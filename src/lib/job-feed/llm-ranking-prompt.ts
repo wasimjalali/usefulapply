@@ -488,10 +488,15 @@ function dedupeSkills(skills: string[]): string[] {
   return result;
 }
 
+/**
+ * The model's reason, whole. The prompt asks for 160 characters or fewer, but the model often writes a little
+ * more, and a reason cut mid-word ("a gap given the candidate's TypeScript backgroun") reads as broken. The
+ * response's max_tokens bounds it.
+ */
 function normalizeReason(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.replace(/\s+/g, ' ').trim();
-  return normalized ? normalized.slice(0, 160) : null;
+  return normalized || null;
 }
 
 function truncateText(value: string | null, maxLength: number): string | null {
