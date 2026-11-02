@@ -21,6 +21,8 @@ The new repo leaves hosted chat, credits, billing and accounts behind. We don't 
 | How do we run Claude Code? | `claude -p`, not the Agent SDK |
 | What do we take from OpenBot? | Its behavior, rebuilt from reading its code. No copied code, because its license is PolyForm Noncommercial |
 | Where do jobs come from? | The career-ops scanners. No SerpAPI |
+| What comes first in first run? | The agent, because the agent reads the CV. Then the CV, then the search |
+| How does the chat open? | As a side panel beside the page, never a popup over it |
 | Which systems? | macOS only |
 | App signing? | No paid Apple signing. It installs with one Terminal command, like Useful Bot |
 | Income in version 1? | None. The goal is more people using it |
@@ -39,7 +41,7 @@ The app starts the agent and streams its replies into our chat. The agent reads 
 
 ## Interface
 
-The app has five screens: First run, Today, Jobs, Applications and Settings. Workspace stops being a screen. The papers live on an application's own page, and the agent lives in an Ask panel that opens from any screen.
+The app has five screens: First run, Today, Jobs, Applications and Settings. Workspace stops being a screen. The papers live on an application's own page, and the agent lives in a side panel, the Ask panel, that opens from the chat box on any screen after first run.
 
 The app, not the agent, decides what the user sees next. Today is plain code over the local database, so it opens instantly and costs no tokens. The agent only runs when the user asks it to do something. There is no tutorial, and nothing is on screen unless it's needed.
 
@@ -52,10 +54,27 @@ The app, not the agent, decides what the user sees next. Today is plain code ove
 | Jobs (6) | Job list, job page with the fit on it, how I search | A2, G5, G7, J1, J3, F8 | `job-ad-text`, `feed-format.ts` |
 | Applications (9) | List in groups, one application's page, status and next step | A7, A8, P1, P2, P3, P4, P6, P7, P8 | `tracker-status.ts` |
 | Papers (9) | CV, letter, emails and answers, edited on the paper | A4, A5, A9, D1, D2, D3, D5, D6, D10 | `cv-templates/`, CV structure, edit history |
-| Ask panel (3) | Chat with the agent. Docks beside the papers, floats elsewhere | K1, K2, K5 | None |
+| Ask panel (3) | Chat with the agent, in a side panel on every screen after first run | K1, K2, K5 | None |
 | Settings and errors (3) | One page: agent, me, my CV, where data is stored | S1, S6, U7 | Parts of `settings/` |
 
 Build the screens from `02 Parts`. Old components are reused for their logic only.
+
+### The side panel
+
+Frame `05 Side panel` shows each stage. Every screen with a chat box already behaves this way in the prototype.
+
+| Place | What happens |
+|---|---|
+| Today, Find jobs, My applications | It slides in from the right, 480px wide. The page moves left and stays usable, and its cards stack when needed |
+| An application's papers | It takes the right column. The paper doesn't move, so the user watches it change |
+| After a change | The changed part is marked on the page, with "Put it back" in the chat |
+| First run | No chat. One step at a time |
+| Buttons such as Check my fit and Write my application | They don't open the chat. The work shows on the page |
+| Prep me and Help me reply | They open the panel and start the answer |
+| Moving between screens | It stays open until the user closes it. Each application keeps its own conversation |
+| The smallest window | The page gets 700px, from the 1180px minimum window |
+
+In the prototype, the panel closes when you move to another frame, because each frame is its own page. The app keeps it open, as above.
 
 ### Left out of the new app
 
@@ -175,13 +194,17 @@ The desktop app finds the CLI the user already installed, runs it in the backgro
 
 ### First-run flow
 
+Frame `04 First run flow` shows the order and what happens when something's off.
+
 1. Look for each CLI in the login shell's PATH, then common install folders, because apps opened from the desktop don't get the terminal's PATH. Run `--version` with a timeout and compare it to our minimum version.
 2. Check login with `claude auth status --json`, and Codex's `account/read` through its app server. Only a clear status counts as logged out. A timeout or unreadable reply keeps the last state.
 3. Show what was found and whether it's logged in, with no terminal anywhere in the flow.
 4. If nothing is found, one click sets up the agent: download the vendor's published CLI, unmodified, into the app's own folder and verify its checksum.
 5. If it's logged out, start the CLI's own login: `claude auth login --claudeai`, or Codex's `account/login/start`. The browser opens, and we never see or store a token.
-6. Run one small test message, then continue to CV import.
-7. "Skip for now" leaves jobs, tracker and editing working.
+6. Run one small test message, then continue to CV import. The agent reads the CV, which is why it comes first.
+7. Confirm the search on the screen built from the CV, with the one question about picking jobs (G1).
+8. Run the first scan (G3), then open the job list (A2).
+9. "Skip for now" goes straight to How I search (G5), where the user types titles and places. Scanning, the job list, tracker and editing work. Reading a CV, picking and writing wait until an agent is connected from Settings or Ask.
 
 ### Keeping it connected
 

@@ -1,8 +1,8 @@
 # Canvas snapshot: Useful Apply desktop app (2026-11-02)
 
-Saved copy of the final [Doop canvas](https://doop.design/c/_NLWh_hojB) and its [prototype](https://doop.design/c/_NLWh_hojB/proto), for the [plan](../2026-11-02-desktop-app.md). 45 frames: 42 screens plus `01 Build map`, `02 Parts` and `03 How it connects`. Start at `01`.
+Saved copy of the final [Doop canvas](https://doop.design/c/_NLWh_hojB) and its [prototype](https://doop.design/c/_NLWh_hojB/proto), for the [plan](../2026-11-02-desktop-app.md). 47 frames: 42 screens plus `01 Build map`, `02 Parts`, `03 How it connects`, `04 First run flow` and `05 Side panel`. Start at `01`.
 
-`canvas.json` is the raw export: every frame's name, position, size and HTML. Each HTML file is one frame, and its `data-doop-*` attributes are the prototype links, which only work inside Doop. PNGs are renders of the same frames at 1x.
+`canvas.json` is the raw export: every frame's name, position, size and HTML. Each HTML file is one frame. Its `data-doop-*` attributes are the prototype links, which only work inside Doop, and the small script in the screens with chat only demonstrates the side panel. PNGs are renders of the same frames at 1x.
 
 All people, companies and numbers are examples.
 
@@ -11,6 +11,8 @@ All people, companies and numbers are examples.
 | 01 | Build map | `EdD0x0ZJ5X` | [HTML](html/01.html) | [PNG](png/01.png) |
 | 02 | Parts | `Ei8rmx374o` | [HTML](html/02.html) | [PNG](png/02.png) |
 | 03 | How it connects | `yOeKDxxKGN` | [HTML](html/03.html) | [PNG](png/03.png) |
+| 04 | First run flow | `cBD6aFnOWi` | [HTML](html/04.html) | [PNG](png/04.png) |
+| 05 | Side panel | `PVzHcnQ-Sn` | [HTML](html/05.html) | [PNG](png/05.png) |
 | N1 | Agent check | `blMgBw-0mA` | [HTML](html/N1.html) | [PNG](png/N1.png) |
 | N2 | Agent problems | `0FiMCVptnV` | [HTML](html/N2.html) | [PNG](png/N2.png) |
 | F1 | Your CV | `U8xYGTJqnD` | [HTML](html/F1.html) | [PNG](png/F1.png) |
@@ -47,9 +49,9 @@ All people, companies and numbers are examples.
 | D5 | Change the look | `gf5lqARn2H` | [HTML](html/D5.html) | [PNG](png/D5.png) |
 | D6 | Edit on the paper | `aOkmJFbjWj` | [HTML](html/D6.html) | [PNG](png/D6.png) |
 | D10 | Check this line | `zcxbCmhraW` | [HTML](html/D10.html) | [PNG](png/D10.png) |
-| K1 | Ask, opened | `5YW-PTT_RL` | [HTML](html/K1.html) | [PNG](png/K1.png) |
-| K2 | Ask, pasted job ad | `ALJUX63Rfz` | [HTML](html/K2.html) | [PNG](png/K2.png) |
-| K5 | Ask, agent states | `Vjj7oDQYKk` | [HTML](html/K5.html) | [PNG](png/K5.png) |
+| K1 | Ask panel | `5YW-PTT_RL` | [HTML](html/K1.html) | [PNG](png/K1.png) |
+| K2 | Ask panel, pasted job ad | `ALJUX63Rfz` | [HTML](html/K2.html) | [PNG](png/K2.png) |
+| K5 | Ask panel, states | `Vjj7oDQYKk` | [HTML](html/K5.html) | [PNG](png/K5.png) |
 | S1 | Me | `Uu88K7vSJl` | [HTML](html/S1.html) | [PNG](png/S1.png) |
 | S6 | Delete my data | `C6i0uMz1sK` | [HTML](html/S6.html) | [PNG](png/S6.png) |
 | U7 | Something broke | `IKRSYFyZUe` | [HTML](html/U7.html) | [PNG](png/U7.png) |
