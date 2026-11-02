@@ -12,6 +12,8 @@ const EXACT_REDIRECT_URIS: ReadonlySet<string> = new Set([
   'https://platform.openai.com/apps-manage/oauth',
   // Cursor web and Cursor Agents (cursor.com/docs/context/mcp, "Static redirect URL"). The desktop app uses loopback.
   'https://www.cursor.com/agents/mcp/oauth/callback',
+  // Executor MCP gateway (executor.sh).
+  'https://executor.sh/api/oauth/callback',
 ]);
 
 const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(['localhost', '127.0.0.1', '[::1]']);

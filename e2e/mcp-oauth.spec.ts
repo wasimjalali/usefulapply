@@ -291,6 +291,7 @@ test.describe.serial('MCP OAuth', () => {
       'https://chatgpt.com/connector_platform_oauth_redirect',
       'https://platform.openai.com/apps-manage/oauth',
       'https://www.cursor.com/agents/mcp/oauth/callback',
+      'https://executor.sh/api/oauth/callback',
     ];
     const loopback = [
       `http://localhost:${randomPort()}/callback`,
@@ -307,6 +308,9 @@ test.describe.serial('MCP OAuth', () => {
       'https://claude.ai/api/mcp/auth_callback/extra',
       'https://claude.ai.evil.example/api/mcp/auth_callback',
       'https://www.cursor.com/agents/mcp/oauth/callback/extra',
+      'https://executor.sh/api/oauth/callback/extra',
+      'https://evil.executor.sh/api/oauth/callback',
+      'http://executor.sh/api/oauth/callback',
       'https://evil.example/callback',
       'http://localhost.evil.example:3000/callback',
       'http://localhost@evil.example/callback',
