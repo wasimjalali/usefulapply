@@ -84,7 +84,7 @@ The server already allows these exact URIs (`src/lib/mcp/redirects.ts`). Compare
 - `https://chatgpt.com/connector_platform_oauth_redirect`
 - `https://platform.openai.com/apps-manage/oauth`
 
-Also allowed for the other clients: `https://claude.ai/api/mcp/auth_callback`, `https://claude.com/api/mcp/auth_callback`, `https://www.cursor.com/agents/mcp/oauth/callback`, and loopback on any port (`http://localhost`, `http://127.0.0.1`, `http://[::1]`).
+Also allowed for the other clients: `https://claude.ai/api/mcp/auth_callback`, `https://claude.com/api/mcp/auth_callback`, `https://www.cursor.com/agents/mcp/oauth/callback`, `https://executor.sh/api/oauth/callback`, and loopback on any port (`http://localhost`, `http://127.0.0.1`, `http://[::1]`).
 
 If the dashboard shows a different callback, add it to `EXACT_REDIRECT_URIS` and deploy before submitting. Exact match is required.
 
