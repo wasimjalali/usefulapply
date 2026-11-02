@@ -309,6 +309,12 @@ test.describe.serial('MCP OAuth', () => {
       'https://claude.ai.evil.example/api/mcp/auth_callback',
       'https://www.cursor.com/agents/mcp/oauth/callback/extra',
       'https://executor.sh/api/oauth/callback/extra',
+      'https://executor.sh/api/oauth/callback/',
+      'https://executor.sh/api/oauth/callback?x=1',
+      'https://executor.sh/api/oauth/callback#x',
+      'https://EXECUTOR.sh/api/oauth/callback',
+      'https://executor.sh:443/api/oauth/callback',
+      'https://x@executor.sh/api/oauth/callback',
       'https://evil.executor.sh/api/oauth/callback',
       'http://executor.sh/api/oauth/callback',
       'https://evil.example/callback',
@@ -450,6 +456,23 @@ test.describe.serial('MCP OAuth', () => {
     await expect(page.getByText('The app chose its own name. Approving sends you to www.cursor.com.')).toBeVisible();
     await page.screenshot({ path: 'test-results/consent-destination.png' });
     await context.close();
+
+    // Executor reaches consent too, and the page names executor.sh.
+    const execUri = 'https://executor.sh/api/oauth/callback';
+    const execReg = await register(request, {
+      client_name: 'Executor',
+      redirect_uris: [execUri],
+      token_endpoint_auth_method: 'none',
+    });
+    expect(execReg.status()).toBe(201);
+    const execId = (await execReg.json()).client_id as string;
+    const contextE = await browser.newContext(withSession());
+    const pageE = await contextE.newPage();
+    await pageE.goto(authorizeUrl({ clientId: execId, redirectUri: execUri, scope: 'read', challenge: pkcePair().challenge }));
+    await pageE.waitForURL((u) => u.pathname.startsWith('/oauth/consent'));
+    await expect(pageE.getByText('The app chose its own name. Approving sends you to executor.sh.')).toBeVisible();
+    await pageE.screenshot({ path: 'test-results/consent-destination-executor.png' });
+    await contextE.close();
 
     // A loopback client gets the plain phrase instead of a host.
     const loop = await register(request, {

@@ -12,7 +12,7 @@ const EXACT_REDIRECT_URIS: ReadonlySet<string> = new Set([
   'https://platform.openai.com/apps-manage/oauth',
   // Cursor web and Cursor Agents (cursor.com/docs/context/mcp, "Static redirect URL"). The desktop app uses loopback.
   'https://www.cursor.com/agents/mcp/oauth/callback',
-  // Executor MCP gateway (executor.sh).
+  // Executor MCP gateway (executor.sh), observed in Executor's DCR attempt and connect page, 2026-11-02 (redirect URI shown by Executor: https://executor.sh/api/oauth/callback).
   'https://executor.sh/api/oauth/callback',
 ]);
 

@@ -77,6 +77,7 @@ Per the plan update, **CIMD is off unless `MCP_CIMD_ENABLED` is `"true"`, and dy
 - **`wrangler dev` rewrites the `Origin` header** to the first custom-domain route (`http://usefulapply.com`) unless `--local-upstream localhost:<port>` is passed, which makes Better Auth return `INVALID_ORIGIN` on every browser POST in preview. The E2E passes the flag. Anyone running `npm run preview` for browser work on 8791 needs it too.
 - **Local preview needs `http://localhost:8791` in `trustedOrigins`.** Added next to 8790.
 - **Cursor** (cursor.com/docs/context/mcp, "Static redirect URL", checked 2026-10-20): the desktop app uses `http://localhost:8787/callback`, which the loopback rule covers. Web and Cursor Agents use `https://www.cursor.com/agents/mcp/oauth/callback`, which is on the exact-match allowlist (asserted, and a `/extra` suffix is rejected). Those docs do not mention a `cursor://` redirect, and a custom scheme is rejected (asserted).
+- **Executor** (executor.sh, observed 2026-11-02): its connect page shows the redirect URI `https://executor.sh/api/oauth/callback`, and its dynamic registration was refused with `invalid_redirect_uri` before it was allowlisted. It is on the exact-match list (asserted at registration and at authorize time, and a trailing slash, query, fragment, uppercase host, explicit port, userinfo and `/extra` suffix are all rejected).
 
 ### Review round 1 changes (PR 153)
 
