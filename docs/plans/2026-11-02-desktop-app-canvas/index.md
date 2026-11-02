@@ -51,5 +51,5 @@ All people, companies and numbers are examples.
 | K2 | Ask, pasted job ad | `ALJUX63Rfz` | [HTML](html/K2.html) | [PNG](png/K2.png) |
 | K5 | Ask, agent states | `Vjj7oDQYKk` | [HTML](html/K5.html) | [PNG](png/K5.png) |
 | S1 | Me | `Uu88K7vSJl` | [HTML](html/S1.html) | [PNG](png/S1.png) |
-| S6 | Delete account | `C6i0uMz1sK` | [HTML](html/S6.html) | [PNG](png/S6.png) |
+| S6 | Delete my data | `C6i0uMz1sK` | [HTML](html/S6.html) | [PNG](png/S6.png) |
 | U7 | Something broke | `IKRSYFyZUe` | [HTML](html/U7.html) | [PNG](png/U7.png) |

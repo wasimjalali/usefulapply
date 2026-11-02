@@ -268,16 +268,16 @@ The backend runs inside the desktop app, with data stored on the user's machine 
 
 | Part | Lines today | Change |
 |---|---|---|
-| CV templates (`components/cv-templates`) | 2,725 | Keep |
+| CV templates (`src/components/cv-templates`) | 2,725 | Keep |
 | CV structure and template logic | about 3,300 | Keep |
-| PDF export (`services/export`) | 3,104 | Keep the templates and print rules. Replace Browser Run with Electron's built-in PDF printing |
-| Word export (`cv-docx.ts`, `letter-docx.ts`) | Measure when copying | Keep, alongside PDF |
+| PDF export (`src/lib/services/export`) | 3,104 | Keep the templates and print rules. Replace Browser Run with Electron's built-in PDF printing |
+| Word export (`cv-docx.ts`, `letter-docx.ts`, in `src/lib/services/export`) | Measure when copying | Keep, alongside PDF |
 | Fact check and document validators | Part of 5,575 in `lib/agents` | Move out of the writer pipeline into `save_document` |
 | Edit history | 328 | Keep, for undo |
 | Database | 47 tables today | Local SQLite with only what the five screens need, reusing Drizzle |
 | MCP framework | Part of 5,291 | Keep the framework, drop OAuth and 40 tools |
 
-`today.get` and the reminder check run in the app.
+`today.get` runs in the app. So does the check for due follow-ups and interviews, which drives the Mac notification and the dock badge.
 
 **Don't bring over:**
 
@@ -294,7 +294,7 @@ The backend runs inside the desktop app, with data stored on the user's machine 
 | Rate limiter | 330 |
 | Better Auth, OAuth routes, R2 and KV wiring, legacy `supabase/` folder | Not measured |
 
-That's about 40,000 of this repo's 117,000 lines that the new app doesn't need. They stay here, untouched.
+That's at least 40,000 of this repo's 117,000 lines that the new app doesn't need. They stay here, untouched.
 
 **Desktop shell:** Electron. It runs Node for the CLIs and job engine, and bundles Chromium, so PDFs come out the same on every computer. Tauri uses each system's own web view, which puts that consistency at risk. Confirm the details in the Electron docs when building.
 
@@ -306,7 +306,7 @@ Version 1 installs the way [Useful Bot does](https://github.com/wasimjalali/usef
 curl -fsSL <release URL>/install.sh | sh
 ```
 
-Follow `scripts/install.sh` in the `useful-bot` repo. It checks the Mac, downloads the zip, checks its SHA-256 against the value published with that release, verifies the code signature, clears the quarantine flag and opens the app. No Apple Developer ID is needed.
+Follow `scripts/install.sh` in the `useful-bot` repo. It needs Apple silicon and macOS 14 or later, and it installs to `/Applications`, or to another folder set by an environment variable. It downloads the zip, checks its SHA-256 against the value published with that release, verifies the code signature, quits any running copy, clears the quarantine flag and opens the app. No Apple Developer ID is needed, but the app must still carry a local ad-hoc signature, or `codesign --verify --strict` fails.
 
 **Updates need their own updater.** Useful Bot uses Sparkle, a native updater for Mac apps, and this is an Electron app. [Electron's docs](https://www.electronjs.org/docs/latest/api/auto-updater) say "Your application must be signed for automatic updates on macOS". So build a small updater that checks each download against a key we hold, then shows the "An update is ready" state in T4. The fallback is running the install command again. Read the current docs before building this.
 
@@ -324,7 +324,7 @@ Implementation is planned for a weekend, when there's time. The riskiest piece c
 | 6 | Build the interface from the canvas, on fake data until step 3 lands | All five screens and the Ask panel work, with every state above |
 | 7 | Write the skills and run the evals | The skills' done-when passes |
 | 8 | Connect everything and test end to end | A German job goes from scan to score, CV, letter, PDF and tracker on both CLIs |
-| 9 | Install script, updater and release | A clean Mac installs with one command, finishes the step 8 flow and receives an update |
+| 9 | Ad-hoc signing, install script, updater and release | A clean Mac installs with one command, finishes the step 8 flow and receives an update |
 
 ## Risks
 
