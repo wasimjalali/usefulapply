@@ -1138,6 +1138,9 @@ function dedupeRoles(values: string[]): string[] {
   return roles;
 }
 
+/** The fetch error for a SerpApi account with no searches left until its plan renews or is upgraded. */
+export const SERPAPI_QUOTA_EXHAUSTED_ERROR = 'SerpApi account has run out of searches.';
+
 function getFetchErrorMessage(error: unknown): string {
   if (error instanceof SerpApiHttpError) {
     if (error.status === 401 || error.status === 403) {
@@ -1145,7 +1148,10 @@ function getFetchErrorMessage(error: unknown): string {
     }
 
     if (error.status === 429) {
-      return 'SerpApi rate limited the request.';
+      // SerpApi answers 429 both for a burst and for a used-up monthly plan; only the body tells them apart.
+      return /run out of searches/i.test(error.bodyText)
+        ? SERPAPI_QUOTA_EXHAUSTED_ERROR
+        : 'SerpApi rate limited the request.';
     }
 
     return `SerpApi request failed with status ${error.status}.`;

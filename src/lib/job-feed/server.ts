@@ -29,7 +29,7 @@ import type {
   JobFeedRankingPrepResult,
   JobFeedRunWorkflowResult,
 } from '@/lib/job-feed/types';
-import { ingestJobFeedRunJobs } from '@/lib/job-feed/ingestion';
+import { ingestJobFeedRunJobs, SERPAPI_QUOTA_EXHAUSTED_ERROR } from '@/lib/job-feed/ingestion';
 import { prepareJobFeedRankingCandidates, prefilterJobFeedJobs } from '@/lib/job-feed/prefilter';
 import { rankJobFeedCandidates } from '@/lib/job-feed/ranking';
 import { captureJobFeedEvent } from '@/lib/job-feed/analytics';
@@ -1581,6 +1581,10 @@ export async function runJobFeedFoundationWorkflow(params: {
     });
 
     if (ingestion.rawJobsFetched === 0 && ingestion.failedFetches.length === ingestion.searchPlan.length && ingestion.searchPlan.length > 0) {
+      if (ingestion.failedFetches.some((failure) => failure.error === SERPAPI_QUOTA_EXHAUSTED_ERROR)) {
+        console.error('[job-feed] SerpApi has no searches left: every run fails until its plan renews or is upgraded. Run', run.id);
+        throw new Error(JOB_SEARCH_QUOTA_EXHAUSTED_RUN_ERROR);
+      }
       throw new Error('All job feed provider fetches failed for this run.');
     }
 
@@ -1728,6 +1732,10 @@ export async function runJobFeedFoundationWorkflow(params: {
   }
 }
 
+/** A run's error when every search failed because the job search provider has no searches left. */
+export const JOB_SEARCH_QUOTA_EXHAUSTED_RUN_ERROR =
+  "The job search provider has run out of searches until its plan renews, so no run can find jobs for now. Nothing on this account needs to change.";
+
 /**
  * The producer half of a queued run: find or create today's run row (one per user and local day,
  * enforced by the unique index the web path also relies on) and leave it `queued` for the queue
@@ -1736,7 +1744,8 @@ export async function runJobFeedFoundationWorkflow(params: {
  * `dispatch` says whether a queue message should be sent for the row: it is queued, whether just
  * now or by an earlier call whose message may have been lost. A claim is conditional, so a
  * message sent twice runs the feed once. `queuedNow` is true when this call is what put the run
- * on the queue. A completed run, or one still running, is left alone.
+ * on the queue. A completed run, or one still running, is left alone. `retriedError` is the error
+ * of the failed run this call put back on the queue, so a caller can tell why the last try ended.
  */
 export async function queueJobFeedRunAdmin(params: {
   userId: string;
@@ -1746,7 +1755,7 @@ export async function queueJobFeedRunAdmin(params: {
   nextRunSlot?: number;
   /** An agent's own searches for the run it queues now. */
   customQueries?: ConfirmedSearchQuery[] | null;
-}): Promise<{ run: JobFeedRun; queuedNow: boolean; dispatch: boolean }> {
+}): Promise<{ run: JobFeedRun; queuedNow: boolean; dispatch: boolean; retriedError?: string | null }> {
   const { userId, now = new Date(), triggerSource = 'manual_user', nextRunSlot, customQueries = null } = params;
   const settings = await getJobFeedSettingsAdmin(userId);
   if (!settings) {
@@ -1809,7 +1818,7 @@ export async function queueJobFeedRunAdmin(params: {
     return { run: current, queuedNow: false, dispatch: current.status === 'queued' };
   }
   if (stalledRunning) await resetJobFeedRunArtifactsForRerun(run.id);
-  return { run: requeued, queuedNow: true, dispatch: true };
+  return { run: requeued, queuedNow: true, dispatch: true, retriedError: stalledRunning ? null : run.error_message };
 }
 
 async function getJobFeedRunByDate(userId: string, localDate: string): Promise<JobFeedRun | null> {

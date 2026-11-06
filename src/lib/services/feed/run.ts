@@ -258,6 +258,8 @@ export interface QueuedFeedRunResponse {
   runsPerDay: number;
   /** Which run of the day this is, from 0. */
   runSlot: number | null;
+  /** Why the run failed, or why the failed try this call put back on the queue ended. Null otherwise. */
+  lastError: string | null;
 }
 
 /**
@@ -287,6 +289,7 @@ export async function queueFeedRun(
       runsLeftToday: 0,
       runsPerDay: gate.runsPerDay,
       runSlot: gate.latestManualRun?.run_slot ?? null,
+      lastError: null,
     };
   }
 
@@ -298,6 +301,7 @@ export async function queueFeedRun(
     customQueries: options.customQueries ?? null,
   });
   let { run, queuedNow, dispatch } = queued;
+  const { retriedError = null } = queued;
   if (gate.cooldown.forceRerun && run.status === 'completed') {
     // The gate lets this run through although today's row already completed (28 hours or more have passed
     // since it ran, as after a timezone change). The synchronous path passes `force` to its workflow; the
@@ -351,6 +355,7 @@ export async function queueFeedRun(
     runsLeftToday: Math.max(0, gate.runsLeftToday - (counted || run.status === 'failed' ? 0 : 1)),
     runsPerDay: gate.runsPerDay,
     runSlot: run.run_slot,
+    lastError: run.status === 'failed' ? run.error_message : retriedError,
   };
 }
 
