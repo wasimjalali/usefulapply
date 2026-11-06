@@ -612,7 +612,7 @@ const runJobFeed = defineTool({
   name: 'run_job_feed',
   title: 'Run job feed',
   description:
-    "Queues a job search for the user and returns at once with a runId and its status: queued or running while it is in progress, completed or failed once it ended. The search runs in the background, usually within a couple of minutes, and the jobs it finds appear in get_job_feed when the run completes. It searches the saved search list, or the queries sent, through the same filtering and ranking as every run. Nothing runs on a schedule: this call, or the user in the web app, starts a run. The plan, or an account's own setting, sets how many completed runs a day are allowed (runsPerDay; a failed run can be started again), and it needs consent on file.",
+    "Queues a job search for the user and returns at once with a runId and its status: queued or running while it is in progress, completed or failed once it ended. The search runs in the background, usually within a couple of minutes, and the jobs it finds appear in get_job_feed when the run completes. It searches the saved search list, or the queries sent, through the same filtering and ranking as every run. Nothing runs on a schedule: this call, or the user in the web app, starts a run. The plan, or an account's own setting, sets how many completed runs a day are allowed (runsPerDay; a failed run can be started again), and it needs consent on file. A failed run is started again by the next call, and that call's lastError says the last try failed, and why when the reason is one an agent can act on: when it says the job search provider has run out of searches, calling again won't help until that's fixed.",
   hints: { readOnly: false, destructive: false, idempotent: true, openWorld: true },
   input: z.object({
     queries: z.array(z.object({
@@ -640,6 +640,8 @@ const runJobFeed = defineTool({
     runSlot: z.number().nullable(),
     /** Set when queries were sent but not used: a run was already queued or running, or none was allowed. */
     warning: z.string().nullable(),
+    /** Why this run failed, or, on the call that started a failed run again, why that try failed. Null otherwise. */
+    lastError: z.string().nullable(),
   }),
   async run({ queries }, { userId }) {
     return feedCall(async () => {
@@ -674,6 +676,7 @@ const runJobFeed = defineTool({
             ? 'No run was started, so the queries sent were not searched: today\'s runs are used up.'
             : 'A run was already in progress, so the queries sent were not searched. Send them again once it has ended.')
           : null,
+        lastError: result.lastError,
       });
     });
   },

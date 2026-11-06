@@ -10,7 +10,7 @@
  *
  * Nothing leaves the machine:
  *   - SerpAPI: `fetch` is wrapped. A request to serpapi.com is answered from a stub (a few jobs, or a
- *     500 when a scenario asks for one) and counted. SERPAPI_API_KEY is set to a dummy value only so
+ *     500, a burst 429, or a no-searches-left 429 or 200 body when a scenario asks for one) and counted. SERPAPI_API_KEY is set to a dummy value only so
  *     the provider code builds its request. Any other outside request fails the run.
  *   - The ranker: it calls Claude Haiku 5.5 (rankWithHaiku), which is the scripted fake model's
  *     ranking writer on FAKE_ANTHROPIC_PORT. If the fake fails, ranking falls back to the
@@ -44,7 +44,7 @@ const report: { startedAt: string; scenarios: Scenario[] } = { startedAt: new Da
 // Network edge: SerpAPI stub, and a tripwire for anything else leaving the machine
 // ---------------------------------------------------------------------------
 
-const serp = { calls: 0, mode: 'ok' as 'ok' | 'error' };
+const serp = { calls: 0, mode: 'ok' as 'ok' | 'error' | 'burst' | 'quota' | 'quota200' };
 const strayRequests: string[] = [];
 const realFetch = globalThis.fetch;
 
@@ -66,6 +66,10 @@ globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters
   if (host === 'serpapi.com') {
     serp.calls += 1;
     if (serp.mode === 'error') return new Response(JSON.stringify({ error: 'stub provider down' }), { status: 500 });
+    // SerpApi sends 429 for a burst and for an account with no searches left; only the body differs (seen live on 2026-11-05).
+    if (serp.mode === 'burst') return new Response(JSON.stringify({ error: 'Too many requests.' }), { status: 429 });
+    if (serp.mode === 'quota') return new Response(JSON.stringify({ error: 'Your account has run out of searches.' }), { status: 429 });
+    if (serp.mode === 'quota200') return new Response(JSON.stringify({ error: 'Your account has run out of searches.' }), { status: 200, headers: { 'content-type': 'application/json' } });
     return new Response(JSON.stringify({ jobs_results: STUB_JOBS }), { status: 200, headers: { 'content-type': 'application/json' } });
   }
   if (host !== '127.0.0.1' && host !== 'localhost') strayRequests.push(url);
@@ -87,6 +91,7 @@ async function main(): Promise<void> {
   const ops = await import('../../src/lib/services/operations');
   const sessionsRepo = await import('../../src/db/repos/sessions');
   const feedServer = await import('../../src/lib/job-feed/server');
+  const feedRun = await import('../../src/lib/services/feed/run');
   const { feedTools } = await import('../../src/lib/mcp/tools/feed');
   const runJobFeed = feedTools.find((tool) => tool.name === 'run_job_feed');
   assert.ok(runJobFeed, 'run_job_feed is registered');
@@ -313,6 +318,62 @@ async function main(): Promise<void> {
     assert.equal(recovered.status, 'completed');
     assert.equal(recovered.error_message, null);
     return { failedCalls, finalStatus: recovered.status };
+  });
+
+  await scenario('j6b. no SerpApi searches left: the run fails within seconds with that reason, and run_job_feed says so instead of a bare "queued"', async () => {
+    // The live bug of 2026-11-05: SerpApi answered every search with 429 "run out of searches". Each run failed
+    // in seconds as "rate limited", each run_job_feed call put it back on the queue and reported only "queued".
+    const user = await seedUser('j6b', { cv: false, feed: true });
+    const { structured } = await callRunJobFeed(user.id);
+    const runId = String(structured.runId);
+    assert.equal(structured.lastError, null, 'a fresh run has no last error');
+
+    // A plain burst 429 is not read as a used-up plan.
+    serp.mode = 'burst';
+    assert.ok((await deliver(feedBody(user.id, runId))).acked);
+    const [burst] = await runsOf(user.id);
+    assert.equal(burst.status, 'failed');
+    assert.equal(burst.error_message, 'All job feed provider fetches failed for this run.');
+    // The tool allows two runs a minute per user, so this retry goes through the service the tool calls.
+    const requeued = await feedRun.queueFeedRun(user.id);
+    assert.equal(requeued.status, 'queued');
+    assert.equal(requeued.started, true);
+    assert.equal(requeued.lastError, 'The run failed before it finished.', 'operator text is not passed on');
+
+    serp.mode = 'quota';
+    const logsBefore = loudErrors.length;
+    assert.ok((await deliver(feedBody(user.id, runId))).acked);
+    const [quota] = await runsOf(user.id);
+    assert.equal(quota.status, 'failed');
+    assert.equal(quota.error_message, feedServer.JOB_SEARCH_QUOTA_EXHAUSTED_RUN_ERROR);
+    const fetchErrors = await all('SELECT DISTINCT response_error FROM job_feed_raw_fetches WHERE run_id = ? AND status = ?', runId, 'failed');
+    assert.ok(fetchErrors.some((row) => row.response_error === 'SerpApi account has run out of searches.'), JSON.stringify(fetchErrors));
+    assert.ok(loudErrors.slice(logsBefore).some((line) => line.includes('SerpApi has no searches left')), 'the operator log names the cause');
+
+    // What an agent sees on its next call: the run is queued again, and why the last try failed.
+    const again = await callRunJobFeed(user.id);
+    assert.equal(again.structured.runId, runId);
+    assert.equal(again.structured.status, 'queued');
+    assert.equal(again.structured.started, true);
+    assert.equal(again.structured.lastError, feedServer.JOB_SEARCH_QUOTA_EXHAUSTED_RUN_ERROR);
+
+    // The same words in a 200 body are read the same way.
+    serp.mode = 'quota200';
+    assert.ok((await deliver(feedBody(user.id, runId))).acked);
+    const [quota200] = await runsOf(user.id);
+    assert.equal(quota200.status, 'failed');
+    assert.equal(quota200.error_message, feedServer.JOB_SEARCH_QUOTA_EXHAUSTED_RUN_ERROR);
+    const requeuedAfter200 = await feedRun.queueFeedRun(user.id);
+    assert.equal(requeuedAfter200.status, 'queued');
+    assert.equal(requeuedAfter200.lastError, feedServer.JOB_SEARCH_QUOTA_EXHAUSTED_RUN_ERROR);
+
+    // Once the plan renews, the same queued run completes and the error is gone.
+    serp.mode = 'ok';
+    assert.ok((await deliver(feedBody(user.id, runId))).acked);
+    const [recovered] = await runsOf(user.id);
+    assert.equal(recovered.status, 'completed');
+    assert.equal(recovered.error_message, null);
+    return { burstError: burst.error_message, quotaError: quota.error_message, fetchErrors, toolAfterQuota: again.structured, finalStatus: recovered.status };
   });
 
   await scenario('j7. a run that fails before the claim is retried, then failed on the last delivery or by the dead-letter queue', async () => {

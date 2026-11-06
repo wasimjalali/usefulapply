@@ -18,6 +18,7 @@ import {
   getJobFeedSettingsAdmin,
   getJobFeedRunDiagnostics,
   getLatestManualCompletedJobFeedRunAdmin,
+  JOB_SEARCH_QUOTA_EXHAUSTED_RUN_ERROR,
   queueJobFeedRunAdmin,
   runJobFeedFoundationWorkflow,
 } from '@/lib/job-feed/server';
@@ -258,6 +259,18 @@ export interface QueuedFeedRunResponse {
   runsPerDay: number;
   /** Which run of the day this is, from 0. */
   runSlot: number | null;
+  /** Why the run failed, or why the failed try this call put back on the queue ended, in words an agent can pass on. Null otherwise. */
+  lastError: string | null;
+}
+
+/**
+ * A run's stored error in words fit for an agent and the user. The stored text is written for operators
+ * (it can name a model provider or an internal step), so only the errors an agent can act on pass through.
+ */
+function toAgentRunError(errorMessage: string | null): string | null {
+  if (!errorMessage) return null;
+  if (errorMessage === JOB_SEARCH_QUOTA_EXHAUSTED_RUN_ERROR) return errorMessage;
+  return 'The run failed before it finished.';
 }
 
 /**
@@ -287,6 +300,7 @@ export async function queueFeedRun(
       runsLeftToday: 0,
       runsPerDay: gate.runsPerDay,
       runSlot: gate.latestManualRun?.run_slot ?? null,
+      lastError: null,
     };
   }
 
@@ -298,6 +312,7 @@ export async function queueFeedRun(
     customQueries: options.customQueries ?? null,
   });
   let { run, queuedNow, dispatch } = queued;
+  const { retriedError = null } = queued;
   if (gate.cooldown.forceRerun && run.status === 'completed') {
     // The gate lets this run through although today's row already completed (28 hours or more have passed
     // since it ran, as after a timezone change). The synchronous path passes `force` to its workflow; the
@@ -351,6 +366,7 @@ export async function queueFeedRun(
     runsLeftToday: Math.max(0, gate.runsLeftToday - (counted || run.status === 'failed' ? 0 : 1)),
     runsPerDay: gate.runsPerDay,
     runSlot: run.run_slot,
+    lastError: toAgentRunError(run.status === 'failed' ? run.error_message : retriedError),
   };
 }
 
