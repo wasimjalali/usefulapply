@@ -10,7 +10,7 @@
  *
  * Nothing leaves the machine:
  *   - SerpAPI: `fetch` is wrapped. A request to serpapi.com is answered from a stub (a few jobs, or a
- *     500, a burst 429 or a no-searches-left 429 when a scenario asks for one) and counted. SERPAPI_API_KEY is set to a dummy value only so
+ *     500, a burst 429, or a no-searches-left 429 or 200 body when a scenario asks for one) and counted. SERPAPI_API_KEY is set to a dummy value only so
  *     the provider code builds its request. Any other outside request fails the run.
  *   - The ranker: it calls Claude Haiku 5.5 (rankWithHaiku), which is the scripted fake model's
  *     ranking writer on FAKE_ANTHROPIC_PORT. If the fake fails, ranking falls back to the
@@ -44,7 +44,7 @@ const report: { startedAt: string; scenarios: Scenario[] } = { startedAt: new Da
 // Network edge: SerpAPI stub, and a tripwire for anything else leaving the machine
 // ---------------------------------------------------------------------------
 
-const serp = { calls: 0, mode: 'ok' as 'ok' | 'error' | 'burst' | 'quota' };
+const serp = { calls: 0, mode: 'ok' as 'ok' | 'error' | 'burst' | 'quota' | 'quota200' };
 const strayRequests: string[] = [];
 const realFetch = globalThis.fetch;
 
@@ -69,6 +69,7 @@ globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: Parameters
     // SerpApi sends 429 for a burst and for an account with no searches left; only the body differs (seen live on 2026-11-05).
     if (serp.mode === 'burst') return new Response(JSON.stringify({ error: 'Too many requests.' }), { status: 429 });
     if (serp.mode === 'quota') return new Response(JSON.stringify({ error: 'Your account has run out of searches.' }), { status: 429 });
+    if (serp.mode === 'quota200') return new Response(JSON.stringify({ error: 'Your account has run out of searches.' }), { status: 200, headers: { 'content-type': 'application/json' } });
     return new Response(JSON.stringify({ jobs_results: STUB_JOBS }), { status: 200, headers: { 'content-type': 'application/json' } });
   }
   if (host !== '127.0.0.1' && host !== 'localhost') strayRequests.push(url);
@@ -337,7 +338,7 @@ async function main(): Promise<void> {
     const requeued = await feedRun.queueFeedRun(user.id);
     assert.equal(requeued.status, 'queued');
     assert.equal(requeued.started, true);
-    assert.equal(requeued.lastError, 'The run failed on our side before it finished. Nothing on this account caused it.', 'operator text is not passed on');
+    assert.equal(requeued.lastError, 'The run failed before it finished.', 'operator text is not passed on');
 
     serp.mode = 'quota';
     const logsBefore = loudErrors.length;
@@ -355,6 +356,16 @@ async function main(): Promise<void> {
     assert.equal(again.structured.status, 'queued');
     assert.equal(again.structured.started, true);
     assert.equal(again.structured.lastError, feedServer.JOB_SEARCH_QUOTA_EXHAUSTED_RUN_ERROR);
+
+    // The same words in a 200 body are read the same way.
+    serp.mode = 'quota200';
+    assert.ok((await deliver(feedBody(user.id, runId))).acked);
+    const [quota200] = await runsOf(user.id);
+    assert.equal(quota200.status, 'failed');
+    assert.equal(quota200.error_message, feedServer.JOB_SEARCH_QUOTA_EXHAUSTED_RUN_ERROR);
+    const requeuedAfter200 = await feedRun.queueFeedRun(user.id);
+    assert.equal(requeuedAfter200.status, 'queued');
+    assert.equal(requeuedAfter200.lastError, feedServer.JOB_SEARCH_QUOTA_EXHAUSTED_RUN_ERROR);
 
     // Once the plan renews, the same queued run completes and the error is gone.
     serp.mode = 'ok';

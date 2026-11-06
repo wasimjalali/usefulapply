@@ -270,7 +270,7 @@ export interface QueuedFeedRunResponse {
 function toAgentRunError(errorMessage: string | null): string | null {
   if (!errorMessage) return null;
   if (errorMessage === JOB_SEARCH_QUOTA_EXHAUSTED_RUN_ERROR) return errorMessage;
-  return 'The run failed on our side before it finished. Nothing on this account caused it.';
+  return 'The run failed before it finished.';
 }
 
 /**
