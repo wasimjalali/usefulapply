@@ -6,7 +6,7 @@ interface Report {
 }
 
 /**
- * (j) Queued job feed runs, and the feed row of a queued kit. The 16 scenarios in
+ * (j) Queued job feed runs, and the feed row of a queued kit. The 17 scenarios in
  * e2e/tools/feed-scenarios.ts run the production run_job_feed tool, producer, queue consumer,
  * workflow and kit runner against a fresh local D1, with the Queue simulated at its edge (send /
  * ack / retry / attempts / dead-letter), SerpAPI answered from a stub inside the process (no real
@@ -15,6 +15,7 @@ interface Report {
  * a second call finds the same run; the consumer claims it and runs the feed once; a duplicate or
  * simultaneous delivery runs nothing twice; messages of an unknown shape are acked untouched; a run
  * that fails after the claim is failed, acked and never re-run, and the next call retries the day;
+ * a SerpApi account with no searches left fails the run with that reason, which run_job_feed returns as lastError;
  * one that fails before the claim is retried, then failed (last delivery or dead-letter queue); a
  * message cannot run another user's run; a completed day queues nothing; a refused send leaves no
  * orphaned queued run; and a queued kit marks the feed row succeeded, failed or cancelled, with a
@@ -24,6 +25,6 @@ test('(j) run_job_feed queues the run; the consumer claims it once; a queued kit
   const report = await runTool<Report>('e2e/tools/feed-scenarios.ts', []);
   const failed = report.scenarios.filter((scenario) => !scenario.passed);
   expect(failed, JSON.stringify(failed, null, 2)).toEqual([]);
-  expect(report.scenarios).toHaveLength(16);
+  expect(report.scenarios).toHaveLength(17);
   test.info().attach('scenarios-j.json', { body: JSON.stringify(report, null, 2), contentType: 'application/json' });
 });

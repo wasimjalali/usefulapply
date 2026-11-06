@@ -770,7 +770,11 @@ async function runOneSerpApiFetch(params: {
       return {
         rawFetchId: rawFetch.id,
         observedJobs: [],
-        failedFetch: { query: planItem.query, country: planItem.country, error: providerError },
+        failedFetch: {
+          query: planItem.query,
+          country: planItem.country,
+          error: isSerpApiQuotaExhausted(providerError) ? SERPAPI_QUOTA_EXHAUSTED_ERROR : providerError,
+        },
         nextPageToken: null,
       };
     }
@@ -1141,17 +1145,23 @@ function dedupeRoles(values: string[]): string[] {
 /** The fetch error for a SerpApi account with no searches left until its plan renews or is upgraded. */
 export const SERPAPI_QUOTA_EXHAUSTED_ERROR = 'SerpApi account has run out of searches.';
 
+/** SerpApi's own words for a used-up plan, sent with a 429 (seen live), and possibly another status or a 200 body. */
+function isSerpApiQuotaExhausted(text: string): boolean {
+  return /run out of searches/i.test(text);
+}
+
 function getFetchErrorMessage(error: unknown): string {
   if (error instanceof SerpApiHttpError) {
+    if (isSerpApiQuotaExhausted(error.bodyText)) {
+      return SERPAPI_QUOTA_EXHAUSTED_ERROR;
+    }
+
     if (error.status === 401 || error.status === 403) {
       return 'SerpApi authentication failed.';
     }
 
     if (error.status === 429) {
-      // SerpApi answers 429 both for a burst and for a used-up monthly plan; only the body tells them apart.
-      return /run out of searches/i.test(error.bodyText)
-        ? SERPAPI_QUOTA_EXHAUSTED_ERROR
-        : 'SerpApi rate limited the request.';
+      return 'SerpApi rate limited the request.';
     }
 
     return `SerpApi request failed with status ${error.status}.`;

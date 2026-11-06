@@ -10,7 +10,7 @@
  *
  * Nothing leaves the machine:
  *   - SerpAPI: `fetch` is wrapped. A request to serpapi.com is answered from a stub (a few jobs, or a
- *     500 when a scenario asks for one) and counted. SERPAPI_API_KEY is set to a dummy value only so
+ *     500, a burst 429 or a no-searches-left 429 when a scenario asks for one) and counted. SERPAPI_API_KEY is set to a dummy value only so
  *     the provider code builds its request. Any other outside request fails the run.
  *   - The ranker: it calls Claude Haiku 5.5 (rankWithHaiku), which is the scripted fake model's
  *     ranking writer on FAKE_ANTHROPIC_PORT. If the fake fails, ranking falls back to the
@@ -333,9 +333,11 @@ async function main(): Promise<void> {
     const [burst] = await runsOf(user.id);
     assert.equal(burst.status, 'failed');
     assert.equal(burst.error_message, 'All job feed provider fetches failed for this run.');
-    const requeued = await feedServer.queueJobFeedRunAdmin({ userId: user.id });
-    assert.equal(requeued.run.status, 'queued');
-    assert.equal(requeued.retriedError, 'All job feed provider fetches failed for this run.', 'the producer reports the failure it retried');
+    // The tool allows two runs a minute per user, so this retry goes through the service the tool calls.
+    const requeued = await feedRun.queueFeedRun(user.id);
+    assert.equal(requeued.status, 'queued');
+    assert.equal(requeued.started, true);
+    assert.equal(requeued.lastError, 'The run failed on our side before it finished. Nothing on this account caused it.', 'operator text is not passed on');
 
     serp.mode = 'quota';
     const logsBefore = loudErrors.length;
@@ -360,10 +362,6 @@ async function main(): Promise<void> {
     const [recovered] = await runsOf(user.id);
     assert.equal(recovered.status, 'completed');
     assert.equal(recovered.error_message, null);
-    // The tool allows two runs a minute per user, so the last look goes through the same service it calls.
-    const done = await feedRun.queueFeedRun(user.id);
-    assert.equal(done.status, 'completed');
-    assert.equal(done.lastError, null);
     return { burstError: burst.error_message, quotaError: quota.error_message, fetchErrors, toolAfterQuota: again.structured, finalStatus: recovered.status };
   });
 
