@@ -124,7 +124,7 @@ Everything from the old "In flight" and "Left to do" lists (the Discard and shor
   - `src/lib/services/`, the client sync engine, `e2e/` with `npm run test:e2e` and `npm run test:sync`;
   - queues, migrations 0009 to 0011, the export service and Browser Run, `MCP_ENABLED`;
   - the credit table (a kit after a fit check is 1.5, not 2.0).
-- **Run the model-evals sync** for the new write-ups: `python3 "$HOME/Desktop/Model Evals/tools/sync.py" --pr`.
+- **Run the model-evals sync** for the new write-ups: `python3 "$HOME/Developer/model-evals/tools/sync.py" --pr`.
 
 ## Needs Wasim (ask once, at the end)
 
