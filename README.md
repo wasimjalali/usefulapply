@@ -2,6 +2,8 @@
 
 **The AI job application agent.** Your entire job search in one app. Find roles, check the fit, generate the full application in 90 seconds, and track everything. Every word traces back to your real CV. Nothing invented.
 
+> **Status:** the hosted product is offline. This is the full production codebase (Next.js on Cloudflare Workers, D1, R2, KV, Stripe, Claude), published as a portfolio project under the MIT license.
+
 ## Features
 
 - **Daily job feed** - hand-picked roles matched to your CV, goals, and location. Free: top 5 a day, one search, no wizard. Plus and Max: up to 25 a day (Plus 2 searches, Max 4).
@@ -200,4 +202,4 @@ Uses **Cloudflare D1** (SQLite) with Drizzle. All schema changes are written as 
 
 ## License
 
-Private - All rights reserved.
+[MIT](LICENSE). Copyright (c) 2026 Wasim Jalali.
