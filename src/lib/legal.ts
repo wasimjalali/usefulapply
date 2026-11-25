@@ -1,6 +1,6 @@
 import { BRAND } from '@/lib/brand';
 
-/** Shared facts for public legal pages. Keep in sync with company/SOURCE-OF-TRUTH.md. */
+/** Shared facts for public legal pages. */
 export const LEGAL = {
   updated: 'October 20, 2026',
   entity: 'Karko AI Inc.',
